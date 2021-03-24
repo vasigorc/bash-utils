@@ -1,0 +1,26 @@
+#! /usr/bin/env bash
+
+# remove all unused volumes
+docker volume prune
+
+# connect to a psql inside running dockerized postgresql db
+docker exec -it $container_name psql -U $username $db_name
+
+# list all port bindings for a docker container
+docker inspect --format='{{range $p, $conf := .NetworkSettings.Ports}}  \
+{{$p}} -> {{(index $conf 0).HostPort}} {{end}}' $container_name
+
+# push an image
+docker image push $image_name
+
+# disable autostart of a container
+docker update --restart=no $container_name
+
+# list tags for an image on remote registry
+curl --user "user:pass" ${docker_registry_url_for_image}/tags/list
+
+# list containers by regex
+docker ps -a | awk '{print $NF}' | grep -w $search_term
+
+# start the grepped containers
+docker start $(docker ps -a | awk '{print $NF}' | grep -w $search_term)
