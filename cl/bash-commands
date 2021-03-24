@@ -1,0 +1,7 @@
+#! /usr/bin/env bash
+
+# replace all carriage returns in a file with commas and output to another file
+tr '\n' ',' < source.txt > target-comma-separated.txt
+
+# get all log exceptionsin last 1000 lines with 5 lines context
+tail -n 1000 /path/to/log-file | grep -C 5 -i "Exception"
