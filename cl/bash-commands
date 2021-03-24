@@ -5,3 +5,21 @@ tr '\n' ',' < source.txt > target-comma-separated.txt
 
 # get all log exceptionsin last 1000 lines with 5 lines context
 tail -n 1000 /path/to/log-file | grep -C 5 -i "Exception"
+
+# find process running on a port
+sudo netstat -tulpn | grep 8080
+
+# find and move files to current directory
+find ~/Downloads/ -name "*.mp3" -exec mv {} . \;
+
+# find and remove files
+find . -name "*.orig" -exec rm -rf {}  \;
+
+# change directory owner recursively
+sudo chown -R $USER $PATH
+
+# recurise find for a word ("run_java") within sub-directories
+grep -ir run_java *
+
+# use a different JDK version (on Ubuntu)
+sudo update-alternatives --config java

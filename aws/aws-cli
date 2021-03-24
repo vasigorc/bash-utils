@@ -1,0 +1,4 @@
+#! /usr/bin/env bash
+
+# list all S3 files keep file names only
+aws s3 ls s3://$BUCKET_PATH | rev | cut -d' ' -f 1 | rev
