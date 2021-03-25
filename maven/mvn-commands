@@ -1,0 +1,10 @@
+#! /usr/bin/env bash
+
+# re-install with purging local dependencies
+mvn dependency:purge-local-repository clean install
+
+# run only one test
+mvn -Dtest=TestCircle test
+
+# update version
+mvn versions:set -DnewVersion=$new_version -DgenerateBackupPoms=false
