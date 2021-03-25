@@ -1,0 +1,68 @@
+#! /usr/bin/env bash
+
+# list git tags matching a pattern
+git tag -n -l 4.*
+
+# create tag with a short message
+git tag -a 1.0.0 -m 'Me short message'
+
+# push tag to remote
+git push origin 1.0.0
+
+# push all tags
+git push origin --tags
+
+# delete tag
+git tag -d 1.0.0
+
+# delete tag from remote
+git push origin --delete 1.0.0
+
+# rename remote branch
+git push origin :$oldBranchName
+git push origin -u <new-name>
+
+# compare file with difftool between branches
+git difftool $featureBranch..master $(pwd)/$fileName
+
+# status only for the tracked files
+git status -uno
+
+# remove all branches that match a regex
+git branch --list "*java*" | xargs git branch -D
+
+# labelled stash
+git stash save "my_stash"
+
+# drop stash
+git stash drop
+
+# last five release tags
+git tag | sort --version-sort --reverse | head -n 5
+
+# find latest commit for a tag
+git rev-list -n 1 $TAG
+
+# interactive stash: `n` to skip `y` to stash
+git stash -p
+
+# git stash with untracked
+git stash --include-untracked
+
+# see diff for most recent stash
+git stash show -p
+
+# see an arbitrary stash
+git stash show -p stash@{1}
+
+# stash a single file
+git stash push -m "Env config change" configuration.yml
+
+# list untracked files
+git ls-files --others --exclude-standard
+
+# list commit history for a line in a file
+git log -L '/private void run() {/':/src/main/java/Main.java
+
+# reset file to another branch
+git checkout branch -- file
