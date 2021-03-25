@@ -3,6 +3,9 @@
 # remove all unused volumes
 docker volume prune
 
+# list volumes
+docker volume ls
+
 # connect to a psql inside running dockerized postgresql db
 docker exec -it $container_name psql -U $username $db_name
 
@@ -24,3 +27,12 @@ docker ps -a | awk '{print $NF}' | grep -w $search_term
 
 # start the grepped containers
 docker start $(docker ps -a | awk '{print $NF}' | grep -w $search_term)
+
+# copy file from container to host
+docker cp $container_name:/usr/share/app/conf/file /tmp
+
+# get container logs
+docker logs --follow --tail 1000 $container_name
+
+# stop all running containers
+docker stop $(docker ps -q)
