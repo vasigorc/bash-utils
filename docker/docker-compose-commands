@@ -1,0 +1,4 @@
+#! /usr/bin/env bash
+
+# docker compose rebuild all services on start (in detached mode)
+docker-compose up -d --build --force-recreate

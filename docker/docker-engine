@@ -37,5 +37,5 @@ docker logs --follow --tail 1000 $container_name
 # stop all running containers
 docker stop $(docker ps -q)
 
-# docker compose rebuild all services on start (in detached mode)
-docker-compose up -d --build --force-recreate
+# display volumes for a container (with jq)
+docker inspect -f '{{ json .Mounts }}' local-postgresql | jq .
