@@ -23,3 +23,6 @@ grep -ir run_java *
 
 # use a different JDK version (on Ubuntu)
 sudo update-alternatives --config java
+
+# find host's Linux distribution
+cat /etc/*-release
