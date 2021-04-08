@@ -12,3 +12,6 @@ SHOW SEARCH_PATH;
 
 # list tables that match table name regex
 SELECT table_schema, table_name FROM information_schema.tables WHERE table_name ILIKE '%abc%';
+
+# print out the execution time after subsequent query results (similar to `time` in bash)
+\timing
