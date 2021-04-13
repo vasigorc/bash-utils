@@ -1,0 +1,11 @@
+# move line down
+ddp
+
+# move line up
+ddkP
+
+# copy (yank) line
+yy
+
+# move cursor to line `n`
+nG
