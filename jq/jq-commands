@@ -1,0 +1,7 @@
+#! /usr/bin/env bash
+
+# find object by value anywhere in the tree
+jq '.. | select(type == "object" and .name == "$search_term")' myfile.json
+
+# or
+jq '.fields[] | select(.name == ""$search_term")' myfile.json
