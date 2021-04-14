@@ -1,0 +1,14 @@
+# for shell
+alias ll="ls -al"
+
+# pipe another command into this, e.g. `git diff | c`
+alias c='xclip -selection clipboard'
+
+# for git
+alias gs="git status"
+alias ga="git add"
+alias gp="git pull"
+
+# for docker
+alias dco="/usr/local/bin/docker-compose"
+dca() { docker attach $(docker-compose ps -q $1); }
