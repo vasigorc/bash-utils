@@ -4,4 +4,7 @@
 jq '.. | select(type == "object" and .name == "$search_term")' myfile.json
 
 # or
-jq '.fields[] | select(.name == ""$search_term")' myfile.json
+jq '.fields[] | select(.name == "$search_term")' myfile.json
+
+# select a property from input object(s) and filter out null values
+jq '. | {$my_property} | select(.$my_property != null)' myfile.json
