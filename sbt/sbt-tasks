@@ -1,0 +1,5 @@
+#! /usr/bin/env bash
+
+# starting sbt 1.4.0
+# print dependency tree
+sbt dependencyTree
