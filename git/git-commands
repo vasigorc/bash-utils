@@ -61,6 +61,9 @@ git stash show -p stash@{1}
 # stash a single file
 git stash push -m "Env config change" configuration.yml
 
+# remove an arbitrary stash
+git stash drop stash@{2}
+
 # list untracked files
 git ls-files --others --exclude-standard
 
