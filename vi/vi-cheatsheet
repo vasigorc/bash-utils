@@ -9,3 +9,11 @@ yy
 
 # move cursor to line `n`
 nG
+
+# (in show mode)
+
+# replace every `pick` with `squash` in lines 2-3
+:2,3s/pick/squash/g
+
+# replace every `pick` with `reword` from the beginning of the file to current line
+:1,.s/pick/reword/g
