@@ -26,3 +26,6 @@ sudo update-alternatives --config java
 
 # find host's Linux distribution
 cat /etc/*-release
+
+# find lines in file that contain word `tugudu` using `sed`
+sed -n '/tugudu/ p' $my_file
