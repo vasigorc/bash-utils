@@ -8,3 +8,10 @@ mvn -Dtest=TestCircle test
 
 # update version
 mvn versions:set -DnewVersion=$new_version -DgenerateBackupPoms=false
+
+# debug a maven plugin with IntelliJ (built-in or a custom one)
+# add a new remote Run configuration in IntelliJ: New Configuration ->
+# Remote. There change port number to 8000 and save
+# Run this command (for example) this will pause and wait.
+# Run the above created configuration with debug in IntelliJ
+mvnDebug clean package -DskipTests
