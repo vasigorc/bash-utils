@@ -72,3 +72,9 @@ git log -L '/private void run() {/':/src/main/java/Main.java
 
 # reset file to another branch
 git checkout branch -- file
+
+# create a git patch with `git diff`
+git format-patch -M origin/master
+
+# apply git patch
+git am wip.patch
