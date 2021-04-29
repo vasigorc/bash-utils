@@ -1,0 +1,8 @@
+#! /usr/bin/env bash
+# rbenv is similar to nvm for Node - it is a local Ruby manager
+
+# list installed ruby versions
+rbenv versions
+
+# download a particular ruby version
+rbenv install $version
