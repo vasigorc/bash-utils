@@ -12,6 +12,9 @@ git push origin 1.0.0
 # push all tags
 git push origin --tags
 
+# delete multiple branches based using a regex
+git branch -D `git branch | grep -E 'wip/update-*'`
+
 # delete tag
 git tag -d 1.0.0
 
