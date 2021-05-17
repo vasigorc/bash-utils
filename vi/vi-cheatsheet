@@ -4,8 +4,8 @@ ddp
 # move line up
 ddkP
 
-# copy (yank) line
-yy
+# copy line down
+yyp 
 
 # move cursor to line `n`
 nG
