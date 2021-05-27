@@ -1,0 +1,10 @@
+#! /usr/bin/env bash
+
+# list kafka topics
+$KAFKA_HOME/bin/kafka-topics.sh --zookeeper $ZK_HOSTS --list
+
+# list kafka topics excluding internal ones
+$KAFKA_HOME/bin/kafka-topics.sh --zookeeper $ZK_HOSTS --list --exclude-internal
+
+# describe a kafka topic
+$KAFKA_HOME/bin/kafka-topics.sh --zookeeper $ZK_HOSTS --topic $TOPIC_NAME --describe
