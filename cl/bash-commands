@@ -29,3 +29,9 @@ cat /etc/*-release
 
 # find lines in file that contain word `tugudu` using `sed`
 sed -n '/tugudu/ p' $my_file
+
+# unpack a tar archive
+tar -xvzf myarchive-4.01.tar.gz
+
+# unpack a .gz archive
+gunzip myapp.log.gz
