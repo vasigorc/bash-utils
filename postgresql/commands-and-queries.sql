@@ -15,3 +15,6 @@ SELECT table_schema, table_name FROM information_schema.tables WHERE table_name 
 
 # print out the execution time after subsequent query results (similar to `time` in bash)
 \timing
+
+# print out the results of the subsequent queries vertically and not horizontally
+\x
