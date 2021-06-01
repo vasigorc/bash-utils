@@ -18,8 +18,15 @@ find . -name "*.orig" -exec rm -rf {}  \;
 # change directory owner recursively
 sudo chown -R $USER $PATH
 
+#############################################################
+##                          GREP                           ##
+#############################################################
+
 # recurise find for a word ("run_java") within sub-directories
 grep -ir run_java *
+
+# list only base log files
+ls -la | grep '[a-zA-Z._]*.log$'
 
 # use a different JDK version (on Ubuntu)
 sudo update-alternatives --config java
