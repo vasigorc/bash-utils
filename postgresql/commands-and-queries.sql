@@ -18,3 +18,7 @@ SELECT table_schema, table_name FROM information_schema.tables WHERE table_name 
 
 # print out the results of the subsequent queries vertically and not horizontally
 \x
+
+# opens psql''s edit mode in system''s default text editor (nano, vi, emacs)
+# opens the previous command
+\e
