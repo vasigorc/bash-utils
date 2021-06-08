@@ -42,3 +42,7 @@ tar -xvzf myarchive-4.01.tar.gz
 
 # unpack a .gz archive
 gunzip myapp.log.gz
+
+# open current command in a text editor
+Ctr^X
+Ctr^E
