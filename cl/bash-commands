@@ -44,5 +44,12 @@ tar -xvzf myarchive-4.01.tar.gz
 gunzip myapp.log.gz
 
 # open current command in a text editor
-Ctr^X
-Ctr^E
+Ctr^x
+Ctr^e
+
+# print CPU architecture in human readable format
+# includes: architecture, processor, nr. cpus, L1-3 caches
+lscpu
+
+# print information about available memory
+free -m
