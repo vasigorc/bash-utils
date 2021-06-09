@@ -10,6 +10,15 @@ yyp
 # move cursor to line `n`
 nG
 
+# Move forward to first `X` character on the line
+fX
+
+# Move backwards to first `X` character on the line
+FX
+
+# move back to the beginning of current word
+b
+
 # (in show mode)
 
 # replace every `pick` with `squash` in lines 2-3
@@ -17,9 +26,3 @@ nG
 
 # replace every `pick` with `reword` from the beginning of the file to current line
 :1,.s/pick/reword/g
-
-# Move forward to first `X` character on the line
-fX
-
-# Move backwards to first `X` character on the line
-FX
