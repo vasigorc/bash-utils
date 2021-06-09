@@ -53,3 +53,7 @@ lscpu
 
 # print information about available memory
 free -m
+
+
+# execute a past command by its number (output of `history` command)
+fc -s 256
