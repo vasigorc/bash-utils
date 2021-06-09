@@ -26,3 +26,6 @@ b
 
 # replace every `pick` with `reword` from the beginning of the file to current line
 :1,.s/pick/reword/g
+
+# execute a past command by its number (output of `history` command)
+fc -s 256
