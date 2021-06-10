@@ -57,3 +57,6 @@ free -m
 
 # execute a past command by its number (output of `history` command)
 fc -s 256
+
+# move command line cursor one word to the left
+Esc^b
