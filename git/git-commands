@@ -73,6 +73,9 @@ git ls-files --others --exclude-standard
 # list commit history for a line in a file
 git log -L '/private void run() {/':/src/main/java/Main.java
 
+# pretty print commit history for a file
+git log  --pretty=format:"%h - %an, %ar : %s" path/to/file
+
 # reset file to another branch
 git checkout branch -- file
 
