@@ -54,6 +54,8 @@ lscpu
 # print information about available memory
 free -m
 
+# list 10 biggest files by size for a directory/partition
+du -h $USER_HOME | sort -rn | head -n 10
 
 # execute a past command by its number (output of `history` command)
 fc -s 256
