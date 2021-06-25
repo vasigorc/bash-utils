@@ -1,0 +1,7 @@
+#! /usr/bin/env bash
+
+# disable a dnf repository (here `etcher-rpm`)
+dnf config-manager --set-disabled etcher-rpm
+
+# enable a dnf repository
+dnf config-manager --set-enabled <repository_name>
