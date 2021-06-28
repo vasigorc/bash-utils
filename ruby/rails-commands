@@ -1,0 +1,4 @@
+#! /usr/bin/env bash
+
+# generate a new rails migration
+bin/rails g migration AddNewMigration
