@@ -1,0 +1,4 @@
+#! /usr/bin/env bash
+
+# copy contents of a file onto clipboard (and remove carriage returns)
+tr -d '\n' < ~/.ssh/id_ed25519.pub | pbcopy
