@@ -1,0 +1,4 @@
+#! /usr/bin/env bash
+
+# test that kubectl is installed
+kubectl version --client
