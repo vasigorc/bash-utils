@@ -8,6 +8,8 @@ alias c='xclip -selection clipboard'
 alias gs="git status"
 alias ga="git add"
 alias gp="git pull"
+# pretty-print git history - add "-n" followed by number of desired log entries
+alias glp='git log --pretty=format:"%h - %an, %ar : %s"'
 
 # for docker
 alias dco="/usr/local/bin/docker-compose"
