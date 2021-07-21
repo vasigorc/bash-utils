@@ -84,3 +84,6 @@ git format-patch -M origin/master
 
 # apply git patch
 git am wip.patch
+
+# list all branches merged into the current branch
+git branch --merged
