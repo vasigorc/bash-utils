@@ -1,0 +1,13 @@
+#just an example of global .gitconfig file
+[user]
+	name = <name>
+	email = <email>
+[credential]
+    # for MacOS users - keeps profile data in a protected space linked to your system account
+	helper = osxkeychain
+[init]
+    # also default in GitHub
+	defaultBranch = main
+[core]
+	editor = vi
+	pager =
