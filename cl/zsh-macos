@@ -6,3 +6,6 @@ tr -d '\n' < ~/.ssh/id_ed25519.pub | pbcopy
 # test an application running on a host and on a port
 # should return `Connection to localhost port 5672 [tcp/amqp] succeeded!`
 nc -vz localhost 5672
+
+# execute a previous command but substitute `sit` for `git`
+!1259:s/sit/git/
