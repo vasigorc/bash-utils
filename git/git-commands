@@ -1,7 +1,7 @@
 #! /usr/bin/env bash
 
 # list git tags matching a pattern
-git tag -n -l 4.*
+git tag -l "4.*"
 
 # create tag with a short message
 git tag -a 1.0.0 -m 'Me short message'
