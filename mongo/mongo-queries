@@ -1,0 +1,5 @@
+# set one field to the value of another
+db.$yourCollection.updateMany({"_id": {$in: ["some-id", "another-id"]}},
+[
+  {"$set" : { "someField" : "$anotherField"}}
+]);
