@@ -87,3 +87,6 @@ git am wip.patch
 
 # list all branches merged into the current branch
 git branch --merged
+
+# list files and line numbers containing the regular expression
+git grep -n somFunctionName
