@@ -90,3 +90,6 @@ git branch --merged
 
 # list files and line numbers containing the regular expression
 git grep -n somFunctionName
+
+# find tag corresponding to a commit id
+git describe --tags  <commit-id>
