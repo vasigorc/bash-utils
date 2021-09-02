@@ -18,6 +18,9 @@ find . -name "*.orig" -exec rm -rf {}  \;
 # find files only in the current directory (non-recursive)
 find . -maxdepth 1 -name "*.log"
 
+# find 10 longest (by line numbers) files, that match a name pattern" in a directory
+find . -name "*.scala" -type f -exec wc -l {} + | sort -rn | head -n 10
+
 # change directory owner recursively
 sudo chown -R $USER $PATH
 
