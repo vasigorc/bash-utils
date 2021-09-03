@@ -28,6 +28,9 @@ git push origin -u <new-name>
 # compare file with difftool between branches
 git difftool $featureBranch..master $(pwd)/$fileName
 
+# list files changed in a commit
+git show --pretty="" --name-only s0m4h45h
+
 # status only for the tracked files
 git status -uno
 
