@@ -9,3 +9,10 @@ db.$yourCollection.find({"$someField.$innerField" : "tugudu"});
 
 # only select certain fields
 db.$yourCollection.find({}, { "$someField" : 1 });
+
+# order by and limit example
+db.$yourCollection
+.find({ "$someField" : { $gt : 3 } }, { "$someField" : 1 })
+.sort( { "$someField" : 1 } )
+.limit(10);
+
