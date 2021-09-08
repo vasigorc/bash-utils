@@ -6,3 +6,6 @@ db.$yourCollection.updateMany({"_id": {$in: ["some-id", "another-id"]}},
 
 # search for nested field
 db.$yourCollection.find({"$someField.$innerField" : "tugudu"});
+
+# only select certain fields
+db.$yourCollection.find({}, { "$someField" : 1 });
