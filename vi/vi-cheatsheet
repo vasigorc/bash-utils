@@ -4,6 +4,9 @@ ddp
 # move line up
 ddkP
 
+# delete one word forward
+dw
+
 # copy line down
 yyp 
 
