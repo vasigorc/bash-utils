@@ -1,0 +1,19 @@
+#! /usr/bin/env bash
+
+# this file includes functions that could be useful across scripts
+
+# @param 1: string - name of the function for which the validation is performed
+# @param 2: int - number of expected arguments
+# @param * - actual parameters passed to that function
+test_function_includes_required_arguments() {
+  function_name="$1"
+  shift
+  required_number_of_arguments="$1"
+  shift
+
+  if [[ $# -lt $required_number_of_arguments ]]
+    then
+      echo "Function $function_name requires $required_number_of_arguments arguments, only $# provided!" >&2
+      exit 1
+  fi
+}
