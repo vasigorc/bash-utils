@@ -37,6 +37,9 @@ git status -uno
 # remove all branches that match a regex
 git branch --list "*java*" | xargs git branch -D
 
+# find which branch contains a commit given it's id
+git branch --contains $COMMIT_ID
+
 # labelled stash
 git stash save "my_stash"
 
