@@ -71,3 +71,6 @@ Esc^b
 
 # generate a RSA key
 ssh-keygen -t rsa -b 2048 -C "youremail@gmail.com"
+
+# compare two files are the same
+cmp --silent ~/.aws/credentials ~/.aws/credentials.bkp || echo "files are different"
