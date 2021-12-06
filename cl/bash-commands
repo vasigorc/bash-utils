@@ -74,3 +74,6 @@ ssh-keygen -t rsa -b 2048 -C "youremail@gmail.com"
 
 # compare two files are the same
 cmp --silent ~/.aws/credentials ~/.aws/credentials.bkp || echo "files are different"
+
+# sort files only (omitting directories) in a directory
+ls -p $someDirectory | grep -v / | sort
