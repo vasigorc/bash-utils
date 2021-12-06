@@ -1,3 +1,6 @@
+# connect to  a particular host/db
+psql -h postgres-instance-address -d my_db -U my_user
+
 # list all tables
 \dt+
 
