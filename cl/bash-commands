@@ -77,3 +77,9 @@ cmp --silent ~/.aws/credentials ~/.aws/credentials.bkp || echo "files are differ
 
 # sort files only (omitting directories) in a directory
 ls -p $someDirectory | grep -v / | sort
+
+# print all envvars for a process
+cat /proc/$processId/environ | tr '\0' '\n'
+
+# login as another super user
+sudo su -l $targetedUser
