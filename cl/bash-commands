@@ -83,3 +83,6 @@ cat /proc/$processId/environ | tr '\0' '\n'
 
 # login as another super user
 sudo su -l $targetedUser
+
+# generate a strong random password of size 10
+openssl rand -base64 10
