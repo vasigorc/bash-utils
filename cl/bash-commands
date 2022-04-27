@@ -86,3 +86,6 @@ sudo su -l $targetedUser
 
 # generate a strong random password of size 10
 openssl rand -base64 10
+
+## copy a directory
+cp -R $sourceFolder $destinationFolder
