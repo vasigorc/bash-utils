@@ -16,3 +16,5 @@ db.$yourCollection
 .sort( { "$someField" : 1 } )
 .limit(10);
 
+# return when one of the values is matched (the $in clause)
+db.$yourCollection.find({ "name" : { $in : ["some", "search", "terms"]}}, { "name" : 1});
