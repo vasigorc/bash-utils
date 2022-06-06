@@ -32,3 +32,9 @@ b
 
 # delete all empty lines in a working buffer
 :g/^$/d
+
+# move a line `n` number of lines up
+:move +n
+
+# move a line `n` number of lines down
+:move -n
