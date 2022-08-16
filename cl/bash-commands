@@ -89,3 +89,6 @@ openssl rand -base64 10
 
 ## copy a directory
 cp -R $sourceFolder $destinationFolder
+
+# list unique owners for all files in a directory
+find <directory> -printf "%u\n" | sort -u
