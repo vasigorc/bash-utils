@@ -2,3 +2,7 @@
 
 # list all toolchains
 rustup toolchain list
+
+# install a missing toolchain
+# can be taken from the output of `cargo expand`
+rustup toolchain install <TOOLCHAIN_KEY>
