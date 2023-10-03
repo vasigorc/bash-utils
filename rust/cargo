@@ -2,3 +2,9 @@
 
 # list all cargo new options
 cargo new --help
+
+# expands code from the source file
+# mostly useful to understand what macros get evaluated into
+# run from the root directory
+# make sure to install cargo-expand first
+cargo expand
