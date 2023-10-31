@@ -1,7 +1,7 @@
 #! /usr/bin/env bash
 
 # list kafka topics
-$KAFKA_HOME/bin/kafka-topics.sh --zookeeper $ZK_HOSTS --list
+kafka-topics --list --bootstrap-server=localhost:9092
 
 # list kafka topics excluding internal ones
 $KAFKA_HOME/bin/kafka-topics.sh --zookeeper $ZK_HOSTS --list --exclude-internal

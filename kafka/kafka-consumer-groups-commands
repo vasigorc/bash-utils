@@ -1,0 +1,10 @@
+#! /usr/bin/env bash
+
+# list consumer groups
+kafka-consumer-groups --list  --bootstrap-server=localhost:9092
+
+# describe a consumer group
+kafka-consumer-groups --bootstrap-server localhost:9092 --describe --group $GROUP_NAME
+
+# reset offset for a consumer group for a topic
+kafka-consumer-groups --bootstrap-server localhost:9092 --group $GROUP_NAME --reset-offsets --to-earliest --execute --topic $TOPIC_NAME
