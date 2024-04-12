@@ -99,3 +99,6 @@ git grep -n somFunctionName
 
 # find tag corresponding to a commit id
 git describe --tags  <commit-id>
+
+# only list branches that current user has commits in
+git for-each-ref --format='%(refname:short) %(authorname)' refs/heads | grep -E "$(git config user.name)" | cut -d' ' -f1
