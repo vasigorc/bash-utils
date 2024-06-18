@@ -39,3 +39,6 @@ docker stop $(docker ps -q)
 
 # display volumes for a container (with jq)
 docker inspect -f '{{ json .Mounts }}' local-postgresql | jq .
+
+# display a docker image's labels
+docker inspect -f "{{json .Config.Labels}} $IMAGE_NAME:$IMAGE_TAG
