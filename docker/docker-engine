@@ -42,3 +42,6 @@ docker inspect -f '{{ json .Mounts }}' local-postgresql | jq .
 
 # display a docker image's labels
 docker inspect -f "{{json .Config.Labels}} $IMAGE_NAME:$IMAGE_TAG
+
+# remove all stopped containers
+docker container rm $(docker container ls -aq)
