@@ -7,7 +7,14 @@
 // custom settings, run `zed: open default settings` from the
 // command palette
 {
-  "vim_mode": true,
+  "vim_mode": false,
+  "assistant": {
+    "default_model": {
+      "provider": "zed.dev",
+      "model": "claude-3-5-sonnet-latest"
+    },
+    "version": "2"
+  },
   "ui_font_size": 16,
   "buffer_font_size": 16,
   "theme": {
@@ -16,18 +23,125 @@
     "dark": "One Dark"
   },
   "autosave": "on_focus_change",
+  "scrollbar": {
+    /// When to show the scrollbar in the project panel.
+    ///
+    /// Default: always
+    "show": "system"
+  },
   "tabs": {
+    // Show git status colors in the editor tabs.
     "git_status": true,
+    // Position of the close button on the editor tabs.
     "close_position": "right",
+    // Whether to show the file icon for a tab.
     "file_icons": true
   },
   "git": {
     "git_gutter": "tracked_files",
     "gutter_debounce": 5,
-    "inline_blame": { "enabled": true, "delay_ms": 500 }
+    "inline_blame": {
+      "enabled": true,
+      "delay_ms": 500
+    }
   },
-  "project_panel": { "git_status": true },
+  "project_panel": {
+    "git_status": true
+  },
   "lsp": {
+    "rust-analyzer": {
+      "completion": {
+        "snippets": {
+          "custom": {
+            "Arc::new": {
+              "postfix": "arc",
+              "body": [
+                "Arc::new(${receiver})"
+              ],
+              "requires": "std::sync::Arc",
+              "scope": "expr"
+            },
+            "Some": {
+              "postfix": "some",
+              "body": [
+                "Some(${receiver})"
+              ],
+              "scope": "expr"
+            },
+            "Ok": {
+              "postfix": "ok",
+              "body": [
+                "Ok(${receiver})"
+              ],
+              "scope": "expr"
+            },
+            "Rc::new": {
+              "postfix": "rc",
+              "body": [
+                "Rc::new(${receiver})"
+              ],
+              "requires": "std::rc::Rc",
+              "scope": "expr"
+            },
+            "Box::pin": {
+              "postfix": "boxpin",
+              "body": [
+                "Box::pin(${receiver})"
+              ],
+              "requires": "std::boxed::Box",
+              "scope": "expr"
+            },
+            "vec!": {
+              "postfix": "vec",
+              "body": [
+                "vec![${receiver}]"
+              ],
+              "description": "vec![]",
+              "scope": "expr"
+            }
+          }
+        }
+      },
+      // These initialization options are merged into Zed's defaults
+      "initialization_options": {
+        "check": {
+          "command": "clippy", // rust-analyzer.check.command (default: "check")
+          "rustfmt": {
+            "extraArgs": [
+              "+nightly"
+            ]
+          }
+        }
+      },
+      "procMacro": {
+        "enable": true
+      }
+    },
+    "pyright": {
+      "settings": {
+        "python.analysis": {
+          "diagnosticMode": "off", // set to "workspace" for strict type-checking
+          "typeCheckingMode": "off", // set to "strict" for strict type-c
+          "autoImportCompletions": true
+        },
+        "python": {
+          "pythonPath": "shared_venv/bin/python"
+        }
+      }
+    },
+    "ruff": {
+      "initialization_options": {
+        "settings": {
+          // Ruff server settings goes here
+          "lineLength": 100,
+          "lint": {
+            "extendSelect": [
+              "I"
+            ]
+          }
+        }
+      }
+    },
     "metals": {
       "settings": {
         "inlayHints": {
@@ -41,19 +155,62 @@
         "enableIndentOnPaste": true,
         "autoImportBuild": "all"
       },
-      "bloopJvmProperties": ["-Xmx3G", "-XX:ReservedCodeCacheSize=512m"],
+      "bloopJvmProperties": [
+        "-Xmx3G",
+        "-XX:ReservedCodeCacheSize=512m"
+      ],
       "binary": {
-        "arguments": ["-Dmetals.http=on"]
+        "arguments": [
+          "-Dmetals.http=on"
+        ]
       },
       "initialization_options": {
         "isHttpEnabled": true
       }
     }
   },
+  "preferred_line_length": 100,
+  "tab_size": 2,
   "languages": {
-    "Scala": {
+    "Python": {
       "tab_size": 2,
-      "language_servers": ["metals"]
+      "formatter": [
+        {
+          "code_actions": {
+            // Fix all auto-fixable lint violations
+            "source.fixAll.ruff": true,
+            // Organize imports
+            "source.organizeImports.ruff": true
+          }
+        }
+      ],
+      "format_on_save": "on",
+      "language_servers": [
+        "pyright",
+        "ruff"
+      ]
+    },
+    "Rust": {
+      "tab_size": 2,
+      "format_on_save": "on",
+      "formatter": "language_server"
     }
-  }
+  },
+  "file_types": {
+    "Dockerfile": [
+      "Dockerfile.gpu"
+    ],
+    "JSON": [
+      "flake.lock"
+    ],
+    "JSONC": [
+      "**/.zed/**/*.json",
+      "**/zed/**/*.json",
+      "**/Zed/**/*.json",
+      "tsconfig.json",
+      "pyrightconfig.json"
+    ]
+  },
+  "ensure_final_newline_on_save": false,
+  "remove_trailing_whitespace_on_save": false
 }
