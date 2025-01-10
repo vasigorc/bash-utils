@@ -16,7 +16,7 @@ shell.nix
 
 ## default.nix
 
-So far I only got to my `default.nix`.
+This includes basic utilites that are likely to be used with any project.
 
 Don't forget to check that you have Nix installed:
 
@@ -36,4 +36,38 @@ default.nix
 ➜  nix git:(main) ✗ ag nix
 default.nix
 1:{ pkgs ? import (fetchTarball "https://github.com/NixOS/nixpkgs/archive/06278c77b5d162e62df170fec307e83f1812d94b.tar.gz") {} }:
+```
+
+## compiled.nix
+
+This module includes technologies that:
+- allow writing modern memory-safe native code
+- packaging and shipping this code with WebAssembly
+
+To run this module in isolation you could do:
+
+```shell
+nix-shell compiled.nix
+these 177 paths will be fetched (877.03 MiB download, 3473.07 MiB unpacked):
+...
+info: using existing install for 'stable-x86_64-unknown-linux-gnu'
+info: default toolchain set to 'stable-x86_64-unknown-linux-gnu'
+
+  stable-x86_64-unknown-linux-gnu unchanged - rustc 1.79.0 (129f3b996 2024-06-10)
+...
+# testing a few of the installed Nix packages
+[nix-shell:~/repos/bash-utils/nix]$ cargo --version
+cargo 1.79.0 (ffa9cf99a 2024-06-03)
+
+[nix-shell:~/repos/bash-utils/nix]$ emcc --help | head -5
+Emscripten Compiler Frontend (emcc)
+***********************************
+
+The Emscripten Compiler Frontend ("emcc") is used to call the
+Emscripten compiler from the command line. It is effectively a drop-in
+Exception ignored in: <_io.TextIOWrapper name='<stdout>' mode='w' encoding='utf-8'>
+BrokenPipeError: [Errno 32] Broken pipe
+
+[nix-shell:~/repos/bash-utils/nix]$ zig version
+0.9.1
 ```
