@@ -8,6 +8,7 @@ pkgs.mkShell {
     pkgs.gnumake            # Build tool
     pkgs.emscripten         # WebAssembly compilation
     pkgs.zig                # Zig programming language
+    pkgs.clang              # c/C++ compiler from LLVM
     pkgs.llvmPackages.llvm  # Complete LLVM toolchain, includes clang
     pkgs.rustup             # Rustup for Rust and Cargo
   ];
