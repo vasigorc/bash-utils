@@ -4,14 +4,14 @@ Currently I am working on compiling a modularized environment setup for differen
 languages / frameworks that I may be using:
 
 ```shell
-/modules
-  ├── compiled.nix   # Rust, WASM, Zig, LLVM
-  ├── jvm.nix        # SDKMAN, Metals, Kotlin
-  ├── ruby.nix       # Ruby, Gems
-  ├── ml.nix         # Python, Mojo, Max
-  ├── platform.nix   # AWS, Terraform
-  ├── default.nix    # Docker, Zsh, JQ, Git, Fzf, etc.
-shell.nix
+compiled.nix   # Rust, WASM, Zig, LLVM
+jvm.nix        # SDKMAN, Metals, Kotlin
+ruby.nix       # Ruby, Gems
+ml.nix         # Python, Mojo, Max
+platform.nix   # AWS, Terraform
+default.nix    # Docker, Zsh, JQ, Git, Fzf, etc.
+js.nix         # nvm, npm, yeoman, etc
+combined.nix   # All of the above combined
 ```
 
 ## default.nix
@@ -71,3 +71,18 @@ BrokenPipeError: [Errno 32] Broken pipe
 [nix-shell:~/repos/bash-utils/nix]$ zig version
 0.9.1
 ```
+
+## js.nix
+
+This modules is intended for use with JS/TS projects:
+
+```shell
+nix-shell js.nix
+...
+[nix-shell:~/repos/learning-nix/wasm_snake_game_udemy]$ npm --version
+8.19.2
+```
+
+## combined.nix
+
+Combined all of the above.
