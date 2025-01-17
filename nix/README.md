@@ -14,7 +14,9 @@ js.nix         # nvm, npm, yeoman, etc
 combined.nix   # All of the above combined
 ```
 
-## default.nix
+## Modules
+
+### default.nix
 
 This includes basic utilites that are likely to be used with any project.
 
@@ -38,7 +40,7 @@ default.nix
 1:{ pkgs ? import (fetchTarball "https://github.com/NixOS/nixpkgs/archive/06278c77b5d162e62df170fec307e83f1812d94b.tar.gz") {} }:
 ```
 
-## compiled.nix
+### compiled.nix
 
 This module includes technologies that:
 - allow writing modern memory-safe native code
@@ -72,7 +74,7 @@ BrokenPipeError: [Errno 32] Broken pipe
 0.9.1
 ```
 
-## js.nix
+### js.nix
 
 This modules is intended for use with JS/TS projects:
 
@@ -83,6 +85,52 @@ nix-shell js.nix
 8.19.2
 ```
 
-## combined.nix
+### combined.nix
 
 Combined all of the above.
+
+## Updating Nix stable version
+
+Versions of the packaged software packages depend on the underlying "pinned" Nix packages version.
+
+Feel free to use [update-nix-pins.sh](./update-nix-pins.sh) file to update to the desired (intended latest)
+stable version. To do so, just update this line in the mentioned file:
+
+```shell
+NIXOS_VERSION="24.11"  # Can be changed when new stable versions come out
+```
+
+and run the script. Below is the approximate expected output:
+
+```shell
+./update-nix-pins.sh
+Current directory contents:
+Finding Nix files to update...
+Found: ./combined.nix
+Found: ./default.nix
+Found: ./compiled.nix
+Found: ./js.nix
+Do you want to update these files to use nixos-24.11 (commit: e24b4c09e963677b1beea49d411cd315a024ad3a)? (y/n) y
+Updating ./combined.nix...
+Updating ./default.nix...
+Updating ./compiled.nix...
+Updating ./js.nix...
+Updated Nix files to use commit e24b4c09e963677b1beea49d411cd315a024ad3a
+
+Verifying changes:
+
+./combined.nix contains:
+{ pkgs ? import (fetchTarball "https://github.com/NixOS/nixpkgs/archive/e24b4c09e963677b1beea49d411cd315a024ad3a.tar.gz") {} }:
+
+
+./default.nix contains:
+{ pkgs ? import (fetchTarball "https://github.com/NixOS/nixpkgs/archive/e24b4c09e963677b1beea49d411cd315a024ad3a.tar.gz") {} }:
+
+
+./compiled.nix contains:
+{ pkgs ? import (fetchTarball "https://github.com/NixOS/nixpkgs/archive/e24b4c09e963677b1beea49d411cd315a024ad3a.tar.gz") {} }:
+
+
+./js.nix contains:
+{ pkgs ? import (fetchTarball "https://github.com/NixOS/nixpkgs/archive/e24b4c09e963677b1beea49d411cd315a024ad3a.tar.gz") {} }:
+```
