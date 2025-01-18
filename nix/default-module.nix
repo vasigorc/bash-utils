@@ -9,6 +9,7 @@
     git
     fzf
     silver-searcher
+    ripgrep # similar to silver-search but integrates well with vim/nvim
 
     # Docker and related tools
     docker
