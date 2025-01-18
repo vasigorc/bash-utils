@@ -14,11 +14,7 @@ js.nix         # nvm, npm, yeoman, etc
 combined.nix   # All of the above combined
 ```
 
-## Modules
-
-### default.nix
-
-This includes basic utilites that are likely to be used with any project.
+## Confirm Nix is installed
 
 Don't forget to check that you have Nix installed:
 
@@ -26,6 +22,12 @@ Don't forget to check that you have Nix installed:
 curl -L https://nixos.org/nix/install | sh -s -- --daemon
 nix --version
 ```
+
+## Modules
+
+### default.nix
+
+This includes basic utilites that are likely to be used with any project.
 
 To run this, copy `default.nix` into any directory and just run Nix shell:
 
@@ -85,22 +87,17 @@ nix-shell js.nix
 8.19.2
 ```
 
-### combined.nix
-
-Combined all of the above.
-
 ## Updating Nix stable version
 
 Versions of the packaged software packages depend on the underlying "pinned" Nix packages version.
 
-Feel free to use [update-nix-pins.sh](./update-nix-pins.sh) file to update to the desired (intended latest)
-stable version. To do so, just update this line in the mentioned file:
+Feel free to use [NIXOS_VERSION](NIXOS_VERSION) file to update to the desired (intended latest) stable version. To do so, just update this line in the mentioned file:
 
 ```shell
 NIXOS_VERSION="24.11"  # Can be changed when new stable versions come out
 ```
 
-and run the script. Below is the approximate expected output:
+and run the [update-nix-pins.sh](./update-nix-pins.sh) script. Below is the approximate expected output:
 
 ```shell
 ./update-nix-pins.sh
@@ -134,3 +131,17 @@ Verifying changes:
 ./js.nix contains:
 { pkgs ? import (fetchTarball "https://github.com/NixOS/nixpkgs/archive/e24b4c09e963677b1beea49d411cd315a024ad3a.tar.gz") {} }:
 ```
+
+## Running all modules together
+
+```shell
+nix-shell combined.nix
+```
+
+## Dynamically choosing modules that you want to pick for your environment
+
+```shell
+./dynamic-nix-shell.sh compiled js
+```
+
+Instead of `js` and `compiled` (or with either/ both of them) you may choose any other module available in this directory (any file ending in `-module.nix`).

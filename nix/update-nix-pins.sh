@@ -1,13 +1,6 @@
 #!/usr/bin/env bash
 
-NIXOS_VERSION="24.11"  # Can be changed when new stable versions come out
-CHANNEL_URL="https://nixos.org/channels/nixos-${NIXOS_VERSION}/git-revision"
-
-get_latest_commit() {
-    curl -L "$CHANNEL_URL" 2>/dev/null | tr -d '\n'
-}
-
-latest_commit=$(get_latest_commit)
+latest_commit=$(./get_nixos_commit.sh)
 
 if [ -z "$latest_commit" ]; then
     echo "Error: Failed to fetch the latest commit"
