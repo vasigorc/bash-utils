@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
 
-if [ ! -f NIXOS_VERSION ]; then
+script_dir="$(dirname "$(readlink -f "$0")")"
+
+version_file="$script_dir/NIXOS_VERSION"
+
+if [ ! -f $version_file ]; then
     echo "Error: NIXOS_VERSION file not found"
     exit 1
 fi
 
-NIXOS_VERSION="$(awk -F = '/NIXOS_VERSION/ { print $2 }' NIXOS_VERSION)"
+NIXOS_VERSION="$(awk -F = '/NIXOS_VERSION/ { print $2 }' "$version_file")"
 
 if [ -z "$NIXOS_VERSION" ]; then
     echo "Error: Could not read NIXOS_VERSION from file"

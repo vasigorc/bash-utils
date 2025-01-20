@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Get the directory where the script resides
-script_dir="$(dirname "$(realpath "$0")")"
+script_dir="$(dirname "$(readlink -f "$0")")"
 
 nixos_commit=$("$script_dir/get_nixos_commit.sh")
 
@@ -19,7 +19,7 @@ nix_shell_combined=$(mktemp)
   echo "{ pkgs ? import (fetchTarball \"$nixpkgs_url\") {} }:"
   echo "let"
   for nix_module in "${nix_modules[@]}"; do
-    echo "    $nix_module = import ./$nix_module-module.nix { inherit pkgs; };"
+    echo "    $nix_module = import $script_dir/$nix_module-module.nix { inherit pkgs; };"
   done
   echo "in"
   echo "pkgs.mkShell {"
