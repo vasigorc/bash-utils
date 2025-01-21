@@ -27,6 +27,7 @@
             docker-compose
             terraform
             sbt
+            nix-shell
         )
         source $ZSH/oh-my-zsh.sh
 
