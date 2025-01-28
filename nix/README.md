@@ -87,6 +87,26 @@ nix-shell js.nix
 8.19.2
 ```
 
+### nvim.nix
+
+Please make sure that you have a valid `~/.config/nvim` directory on your local. [nvim-module.nix](nvim-module.nix) will try to read
+configurations from there via `XDG_CONFIG_HOME`. 
+
+```shell
+~/repos/bash-utils/nix/dynamic-nix-shell.sh compiled js nvim
+unpacking 'https://github.com/NixOS/nixpkgs/archive/4e96537f163fad24ed9eb317798a79afc85b51b7.tar.gz' into the Git cache...
+info: using existing install for 'stable-x86_64-unknown-linux-gnu'
+info: default toolchain set to 'stable-x86_64-unknown-linux-gnu'
+
+  stable-x86_64-unknown-linux-gnu unchanged - rustc 1.79.0 (129f3b996 2024-06-10)
+
+
+[nix-shell:~/repos/wasm_snake_game_udemy]$ nvim
+```
+
+After this `nvim` would be able to connect to a running LSP (`tsserver`, `rust_analyzer`) from your project.
+
+
 ## Updating Nix stable version
 
 Versions of the packaged software packages depend on the underlying "pinned" Nix packages version.
