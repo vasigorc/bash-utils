@@ -89,7 +89,7 @@ nix-shell js.nix
 
 ### nvim.nix
 
-Please make sure that you have a valid `~/.config/nvim` directory on your local. [nvim-module.nix](nvim-module.nix) will try to read
+Please make sure that you have a valid `~/.config/nvim` directory on your machine. [nvim-module.nix](nvim-module.nix) will try to read
 configurations from there via `XDG_CONFIG_HOME`. 
 
 ```shell
