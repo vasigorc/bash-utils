@@ -111,6 +111,14 @@ after this `nvim` would be able to connect to a running lsp (`tsserver`, `rust_a
 This module currently contains Docker and Docker compose packages, but it is intended to host other Platform / DevOps
 dependencies such as AWS CLI, Terraform, Kubernetes, etc.
 
+### python.nix
+
+This may evolve into a `ml.nix` eventually, however, for now we will keep this labeled as `python.nix`. A few of the dependencies that we couldn't add:
+
+- [Max](https://www.modular.com/max) is a proprietary platform
+- [Mojo](https://docs.modular.com/mojo/manual/) doesn't have a Nix package. We could install it manually with Nix's `mkDerivation` in the future
+- A few typical Python ML libraries, like PyTorch, TensorFlow, or even NumPy I think is better to manage on project level via `conda` or `pip`
+
 ## Updating Nix stable version
 
 Versions of the packaged software packages depend on the underlying "pinned" Nix packages version.
