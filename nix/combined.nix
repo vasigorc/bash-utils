@@ -4,9 +4,9 @@ let
   compiled = import ./compiled-module.nix { inherit pkgs; };
   default = import ./default-module.nix { inherit pkgs; };
   js = import ./js-module.nix { inherit pkgs; };
-  js = import ./platform-module.nix { inherit pkgs; };
+  platform = import ./platform-module.nix { inherit pkgs; };
 in
 pkgs.mkShell {
-  buildInputs = compiled.buildInputs ++ default.buildInputs ++ js.buildInputs;
-  shellHook = compiled.shellHook + default.shellHook + js.shellHook;
+  buildInputs = compiled.buildInputs ++ default.buildInputs ++ js.buildInputs ++ platform.buildInputs;
+  shellHook = compiled.shellHook + default.shellHook + js.shellHook + platform.shellHook;
 }
