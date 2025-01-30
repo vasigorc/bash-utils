@@ -4,6 +4,7 @@ let
   compiled = import ./compiled-module.nix { inherit pkgs; };
   default = import ./default-module.nix { inherit pkgs; };
   js = import ./js-module.nix { inherit pkgs; };
+  js = import ./platform-module.nix { inherit pkgs; };
 in
 pkgs.mkShell {
   buildInputs = compiled.buildInputs ++ default.buildInputs ++ js.buildInputs;

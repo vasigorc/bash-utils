@@ -23,13 +23,13 @@ curl -L https://nixos.org/nix/install | sh -s -- --daemon
 nix --version
 ```
 
-## Modules
+## modules
 
 ### default.nix
 
-This includes basic utilites that are likely to be used with any project.
+this includes basic utilites that are likely to be used with any project.
 
-To run this, copy `default.nix` into any directory and just run Nix shell:
+to run this, copy `default.nix` into any directory and just run nix shell:
 
 ```shell
 nix-shell
@@ -39,38 +39,38 @@ default.nix
 # silver-search is working
 ➜  nix git:(main) ✗ ag nix
 default.nix
-1:{ pkgs ? import (fetchTarball "https://github.com/NixOS/nixpkgs/archive/06278c77b5d162e62df170fec307e83f1812d94b.tar.gz") {} }:
+1:{ pkgs ? import (fetchtarball "https://github.com/nixos/nixpkgs/archive/06278c77b5d162e62df170fec307e83f1812d94b.tar.gz") {} }:
 ```
 
 ### compiled.nix
 
-This module includes technologies that:
+this module includes technologies that:
 - allow writing modern memory-safe native code
-- packaging and shipping this code with WebAssembly
+- packaging and shipping this code with webassembly
 
-To run this module in isolation you could do:
+to run this module in isolation you could do:
 
 ```shell
 nix-shell compiled.nix
-these 177 paths will be fetched (877.03 MiB download, 3473.07 MiB unpacked):
+these 177 paths will be fetched (877.03 mib download, 3473.07 mib unpacked):
 ...
 info: using existing install for 'stable-x86_64-unknown-linux-gnu'
 info: default toolchain set to 'stable-x86_64-unknown-linux-gnu'
 
   stable-x86_64-unknown-linux-gnu unchanged - rustc 1.79.0 (129f3b996 2024-06-10)
 ...
-# testing a few of the installed Nix packages
+# testing a few of the installed nix packages
 [nix-shell:~/repos/bash-utils/nix]$ cargo --version
 cargo 1.79.0 (ffa9cf99a 2024-06-03)
 
 [nix-shell:~/repos/bash-utils/nix]$ emcc --help | head -5
-Emscripten Compiler Frontend (emcc)
+emscripten compiler frontend (emcc)
 ***********************************
 
-The Emscripten Compiler Frontend ("emcc") is used to call the
-Emscripten compiler from the command line. It is effectively a drop-in
-Exception ignored in: <_io.TextIOWrapper name='<stdout>' mode='w' encoding='utf-8'>
-BrokenPipeError: [Errno 32] Broken pipe
+the emscripten compiler frontend ("emcc") is used to call the
+emscripten compiler from the command line. it is effectively a drop-in
+exception ignored in: <_io.textiowrapper name='<stdout>' mode='w' encoding='utf-8'>
+brokenpipeerror: [errno 32] broken pipe
 
 [nix-shell:~/repos/bash-utils/nix]$ zig version
 0.9.1
@@ -78,7 +78,7 @@ BrokenPipeError: [Errno 32] Broken pipe
 
 ### js.nix
 
-This modules is intended for use with JS/TS projects:
+this modules is intended for use with js/ts projects:
 
 ```shell
 nix-shell js.nix
@@ -89,12 +89,12 @@ nix-shell js.nix
 
 ### nvim.nix
 
-Please make sure that you have a valid `~/.config/nvim` directory on your machine. [nvim-module.nix](nvim-module.nix) will try to read
-configurations from there via `XDG_CONFIG_HOME`. 
+please make sure that you have a valid `~/.config/nvim` directory on your machine. [nvim-module.nix](nvim-module.nix) will try to read
+configurations from there via `xdg_config_home`. 
 
 ```shell
 ~/repos/bash-utils/nix/dynamic-nix-shell.sh compiled js nvim
-unpacking 'https://github.com/NixOS/nixpkgs/archive/4e96537f163fad24ed9eb317798a79afc85b51b7.tar.gz' into the Git cache...
+unpacking 'https://github.com/nixos/nixpkgs/archive/4e96537f163fad24ed9eb317798a79afc85b51b7.tar.gz' into the git cache...
 info: using existing install for 'stable-x86_64-unknown-linux-gnu'
 info: default toolchain set to 'stable-x86_64-unknown-linux-gnu'
 
@@ -104,8 +104,12 @@ info: default toolchain set to 'stable-x86_64-unknown-linux-gnu'
 [nix-shell:~/repos/wasm_snake_game_udemy]$ nvim
 ```
 
-After this `nvim` would be able to connect to a running LSP (`tsserver`, `rust_analyzer`) from your project.
+after this `nvim` would be able to connect to a running lsp (`tsserver`, `rust_analyzer`) from your project.
 
+### platform.nix
+
+This module currently contains Docker and Docker compose packages, but it is intended to host other Platform / DevOps
+dependencies such as AWS CLI, Terraform, Kubernetes, etc.
 
 ## Updating Nix stable version
 
