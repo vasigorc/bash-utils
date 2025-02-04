@@ -90,7 +90,7 @@ nix-shell js.nix
 ### nvim.nix
 
 please make sure that you have a valid `~/.config/nvim` directory on your machine. [nvim-module.nix](nvim-module.nix) will try to read
-configurations from there via `xdg_config_home`. 
+configurations from there via `xdg_config_home`.
 
 ```shell
 ~/repos/bash-utils/nix/dynamic-nix-shell.sh compiled js nvim
@@ -105,6 +105,15 @@ info: default toolchain set to 'stable-x86_64-unknown-linux-gnu'
 ```
 
 after this `nvim` would be able to connect to a running lsp (`tsserver`, `rust_analyzer`) from your project.
+
+Also for `git` support to properly to work, either install `lazygit` manually, or rely to the package brought
+by this module, but either way ensure to have a config file for `lazygit` (see [instructions](https://github.com/jesseduffield/lazygit/blob/master/docs/Config.md#user-config)).
+
+You may use the [config file](./../lazygit/config.yaml) from this repository, so for Linux you could do:
+
+```shell
+curl -sSf https://raw.githubusercontent.com/vasigorc/bash-utils/main/lazygit/config.yaml ~/.config/lazygit/config.yml
+```
 
 ### platform.nix
 

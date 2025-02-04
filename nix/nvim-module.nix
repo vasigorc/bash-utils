@@ -13,6 +13,7 @@
     # Required tools
     fzf
     ripgrep
+    lazygit
     asciidoctor
   ];
 
