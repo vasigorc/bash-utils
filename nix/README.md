@@ -27,7 +27,16 @@ nix --version
 
 ### default.nix
 
-this includes basic utilites that are likely to be used with any project.
+Very important: this module requires that you use a zsh setup. Please follow the installation requirements
+before using this module:
+
+- [Install zsh](https://github.com/ohmyzsh/ohmyzsh/wiki/Installing-ZSH#install-and-set-up-zsh-as-default)
+- [Install oh-my-zsh](https://ohmyz.sh/#install)
+- [Install zsh-nix-shell](https://github.com/chisui/zsh-nix-shell?tab=readme-ov-file#installation)
+
+Don't worry if you don't feel like using this module, despite what its name may convey - it is completely optional.
+
+This includes basic utilites that are likely to be used with any project.
 
 to run this, copy `default.nix` into any directory and just run nix shell:
 
