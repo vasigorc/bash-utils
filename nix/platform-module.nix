@@ -4,6 +4,9 @@
   buildInputs = with pkgs; [
 # Docker and related tools
     docker
-    docker-compose
+      docker-compose
   ];
+
+  shellHook = ''
+    '';
 }
