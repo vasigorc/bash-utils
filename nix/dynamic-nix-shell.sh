@@ -11,8 +11,10 @@ nixpkgs_url="https://github.com/NixOS/nixpkgs/archive/$nixos_commit.tar.gz"
 # Collect Nix module names from arguments
 nix_modules=("$@")
 
-# Generate a temporary shell file
-nix_shell_combined=$(mktemp)
+# Generate a unique temporary file name using timestamp, milliseconds and PID
+timestamp=$(date +%s%3N)
+pid=$$
+nix_shell_combined="$script_dir/._nix_shell_${timestamp}_${pid}.nix"
 
 # Create the combined shell
 {
@@ -30,7 +32,7 @@ nix_shell_combined=$(mktemp)
       echo -n " ++ "
     fi
   done
-  echo ";"  # Close buildInputs
+  echo ";" # Close buildInputs
 
   # Handle shellHook
   echo -n "  shellHook = "
@@ -40,10 +42,18 @@ nix_shell_combined=$(mktemp)
       echo -n " + "
     fi
   done
-  echo ";"  # Close shellHook
-  
+  echo ";" # Close shellHook
+
   echo "}"
-} > "$nix_shell_combined"
+} >"$nix_shell_combined"
+
+# Set up portable environment variables only if default module is included
+if [[ " ${nix_modules[@]} " =~ " default " ]]; then
+  echo "Setting up zsh environment for default module..."
+  export NIX_BUILD_SHELL="$HOME/.oh-my-zsh/custom/plugins/nix-shell/scripts/buildShellShim"
+  export SHELL="$HOME/.oh-my-zsh/custom/plugins/nix-shell/scripts/buildShellShim"
+  export PATH="$PATH:$HOME/.oh-my-zsh/custom/plugins/nix-shell/scripts"
+fi
 
 # Launch nix-shell
 nix-shell "$nix_shell_combined"
