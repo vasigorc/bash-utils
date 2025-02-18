@@ -1,7 +1,7 @@
 #! /usr/bin/env bash
 
 # replace all carriage returns in a file with commas and output to another file
-tr '\n' ',' < source.txt > target-comma-separated.txt
+tr '\n' ',' <source.txt >target-comma-separated.txt
 
 # get all log exceptionsin last 1000 lines with 5 lines context
 tail -n 1000 /path/to/log-file | grep -C 5 -i "Exception"
@@ -13,7 +13,7 @@ sudo netstat -tulpn | grep 8080
 find ~/Downloads/ -name "*.mp3" -exec mv {} . \;
 
 # find and remove files
-find . -name "*.orig" -exec rm -rf {}  \;
+find . -name "*.orig" -exec rm -rf {} \;
 
 # find files only in the current directory (non-recursive)
 find . -maxdepth 1 -name "*.log"
@@ -91,4 +91,7 @@ openssl rand -base64 10
 cp -R $sourceFolder $destinationFolder
 
 # list unique owners for all files in a directory
-find <directory> -printf "%u\n" | sort -u
+find <directory >-printf "%u\n" | sort -u
+
+# list top twenty processes by their cpu usage
+ps -aux --sort=-%cpu | head -n 20
