@@ -95,3 +95,8 @@ find <directory >-printf "%u\n" | sort -u
 
 # list top twenty processes by their cpu usage
 ps -aux --sort=-%cpu | head -n 20
+
+# preview of sync files from one directory to another
+# without deleting deltas
+# to perform actual rsync, just remove the `n` flag
+rsync avn --exclude='.some_file' --exclude='some_other_file' $SOURCE_PATH $DESTUNATION_PATH
