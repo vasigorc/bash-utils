@@ -7,19 +7,24 @@
 // custom settings, run `zed: open default settings` from the
 // command palette
 {
-  "vim_mode": false,
+  "vim_mode": true,
   "assistant": {
     "default_model": {
       "provider": "zed.dev",
-      "model": "claude-3-5-sonnet-latest"
+      "model": "claude-3-7-sonnet-latest"
     },
     "version": "2"
   },
+  "features": {
+    "edit_prediction_provider": "zed"
+  },
+  "icon_theme": "Catppuccin Frappé",
   "ui_font_size": 16,
-  "buffer_font_size": 16,
+  "buffer_font_size": 16.0,
+  "buffer_font_family": "JetBrainsMono Nerd Font",
   "theme": {
     "mode": "system",
-    "light": "One Light",
+    "light": "Catppuccin Mocha",
     "dark": "One Dark"
   },
   "autosave": "on_focus_change",
@@ -55,47 +60,35 @@
           "custom": {
             "Arc::new": {
               "postfix": "arc",
-              "body": [
-                "Arc::new(${receiver})"
-              ],
+              "body": ["Arc::new(${receiver})"],
               "requires": "std::sync::Arc",
               "scope": "expr"
             },
             "Some": {
               "postfix": "some",
-              "body": [
-                "Some(${receiver})"
-              ],
+              "body": ["Some(${receiver})"],
               "scope": "expr"
             },
             "Ok": {
               "postfix": "ok",
-              "body": [
-                "Ok(${receiver})"
-              ],
+              "body": ["Ok(${receiver})"],
               "scope": "expr"
             },
             "Rc::new": {
               "postfix": "rc",
-              "body": [
-                "Rc::new(${receiver})"
-              ],
+              "body": ["Rc::new(${receiver})"],
               "requires": "std::rc::Rc",
               "scope": "expr"
             },
             "Box::pin": {
               "postfix": "boxpin",
-              "body": [
-                "Box::pin(${receiver})"
-              ],
+              "body": ["Box::pin(${receiver})"],
               "requires": "std::boxed::Box",
               "scope": "expr"
             },
             "vec!": {
               "postfix": "vec",
-              "body": [
-                "vec![${receiver}]"
-              ],
+              "body": ["vec![${receiver}]"],
               "description": "vec![]",
               "scope": "expr"
             }
@@ -107,9 +100,7 @@
         "check": {
           "command": "clippy", // rust-analyzer.check.command (default: "check")
           "rustfmt": {
-            "extraArgs": [
-              "+nightly"
-            ]
+            "extraArgs": ["+nightly"]
           }
         }
       },
@@ -135,9 +126,7 @@
           // Ruff server settings goes here
           "lineLength": 100,
           "lint": {
-            "extendSelect": [
-              "I"
-            ]
+            "extendSelect": ["I"]
           }
         }
       }
@@ -155,14 +144,9 @@
         "enableIndentOnPaste": true,
         "autoImportBuild": "all"
       },
-      "bloopJvmProperties": [
-        "-Xmx3G",
-        "-XX:ReservedCodeCacheSize=512m"
-      ],
+      "bloopJvmProperties": ["-Xmx3G", "-XX:ReservedCodeCacheSize=512m"],
       "binary": {
-        "arguments": [
-          "-Dmetals.http=on"
-        ]
+        "arguments": ["-Dmetals.http=on"]
       },
       "initialization_options": {
         "isHttpEnabled": true
@@ -185,24 +169,21 @@
         }
       ],
       "format_on_save": "on",
-      "language_servers": [
-        "pyright",
-        "ruff"
-      ]
+      "language_servers": ["pyright", "ruff"]
     },
     "Rust": {
       "tab_size": 2,
       "format_on_save": "on",
       "formatter": "language_server"
+    },
+    "Scala": {
+      "tab_size": 2,
+      "language_servers": "metals"
     }
   },
   "file_types": {
-    "Dockerfile": [
-      "Dockerfile.gpu"
-    ],
-    "JSON": [
-      "flake.lock"
-    ],
+    "Dockerfile": ["Dockerfile.gpu"],
+    "JSON": ["flake.lock"],
     "JSONC": [
       "**/.zed/**/*.json",
       "**/zed/**/*.json",
