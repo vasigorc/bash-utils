@@ -34,3 +34,7 @@ export PAGER=""
 
 export JAVA_HOME=/Users/vasilegorcinschi/.sdkman/candidates/java/current
 alias vim="nvim"
+
+export VIMCONFIG=~/.config/nvim
+export VIMDATA=~/.local/share/nvim
+
