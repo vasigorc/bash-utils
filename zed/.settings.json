@@ -178,7 +178,7 @@
     },
     "Scala": {
       "tab_size": 2,
-      "language_servers": "metals"
+      "language_servers": ["metals"]
     }
   },
   "file_types": {
