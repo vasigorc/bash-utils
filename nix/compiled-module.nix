@@ -24,16 +24,31 @@
 
     # Function to check and add target for a specific toolchain
     check_and_add_target() {
-    local target=$1
-    local toolchain=$2
-    if ! rustup target list --installed --toolchain $toolchain | grep -q "^$target"; then
-    echo "Adding target $target for $toolchain toolchain..."
-    rustup target add $target --toolchain $toolchain
-    fi
+      local target=$1
+      local toolchain=$2
+      if ! rustup target list --installed --toolchain $toolchain | grep -q "^$target"; then
+      echo "Adding target $target for $toolchain toolchain..."
+      rustup target add $target --toolchain $toolchain
+      fi
+    }
+
+    # Function to check and add component for a specific toolchain
+    check_and_add_component() {
+      local component=$1
+      local toolchain=$2
+      
+      if ! rustup component list --installed --toolchain $toolchain | grep "^$component"; then
+        echo "Adding component $component for $toolchain toolchain..."
+        rustup component add $component --toolchain $toolchain
+      fi
     }
 
     # Add required targets for nightly toolchain if not present
     check_and_add_target "wasm32-unknown-unknown" "nightly"
     check_and_add_target "wasm32-wasi" "nightly"
+    
+    # Add required components for nightly toolchain if not present
+    check_and_add_component "rustfmt" "stable"
+    check_and_add_component "rustfmt" "nightly"
     '';
 }
