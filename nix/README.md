@@ -188,6 +188,36 @@ Verifying changes:
 nix-shell combined.nix
 ```
 
+## Automatically use project specific environment
+
+In order to automatically use project specific environment, you can use the following setup:
+
+1. Install [direnv](https://direnv.net/)
+
+   ```shell
+   nix-env -iA nixpkgs.direnv nixpkgs.nix-direnv
+   ```
+   
+2. Add the following line to your `~/.zshrc` file:
+
+   ```shell
+   eval "$(direnv hook zsh)"
+   ```
+   
+3. Reload your shell configuration:
+
+   ```shell
+   source ~/.zshrc
+   ```
+   
+4. Add an `.envrc` file to your project root directory specifying the modules you want to use, for example:
+
+   ```shell
+   use nix ~/repos/bash-utils/nix/combined.nix
+   ```
+  
+5. Run `direnv allow` to enable the environment.
+
 ## Dynamically choosing modules that you want to pick for your environment
 
 ```shell
