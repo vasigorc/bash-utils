@@ -11,6 +11,8 @@
     clang              # c/C++ compiler from LLVM
     llvmPackages.llvm  # Complete LLVM toolchain, includes clang
     rustup             # Rustup for Rust and Cargo
+    go                 # Go programming language
+    gopls              # Go language server
   ];
 
   shellHook = ''
