@@ -25,7 +25,7 @@
   "theme": {
     "mode": "system",
     "light": "Catppuccin Mocha",
-    "dark": "One Dark"
+    "dark": "Catppuccin Mocha"
   },
   "autosave": "on_focus_change",
   "scrollbar": {
@@ -111,8 +111,8 @@
     "pyright": {
       "settings": {
         "python.analysis": {
-          "diagnosticMode": "off", // set to "workspace" for strict type-checking
-          "typeCheckingMode": "off", // set to "strict" for strict type-c
+          "diagnosticMode": "workspace", // set to "workspace" for strict type-checking, or to "off" for no type-checking
+          "typeCheckingMode": "strict", // set to "strict" for strict type-checking, or to "off" for no type-checking
           "autoImportCompletions": true
         },
         "python": {
@@ -151,6 +151,22 @@
       "initialization_options": {
         "isHttpEnabled": true
       }
+    },
+    "gopls": {
+      "path": "/home/vasilegorcinschi/go/bin/gopls",
+      "initialization_options": {
+        "usePlaceholders": true,
+        "completionDocumentation": true,
+        "matcher": "fuzzy",
+        "analyses": {
+          "unusedparams": true,
+          "nilness": true,
+          "unusedwrite": true,
+          "unusedvariable": true
+        },
+        "staticcheck": true,
+        "hoverKind": "FullDocumentation"
+      }
     }
   },
   "preferred_line_length": 100,
@@ -179,6 +195,12 @@
     "Scala": {
       "tab_size": 2,
       "language_servers": ["metals"]
+    },
+    "Go": {
+      "tab_size": 4,
+      "format_on_save": "on",
+      "language_servers": ["gopls"],
+      "formatter": "language_server"
     }
   },
   "file_types": {
