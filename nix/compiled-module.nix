@@ -4,6 +4,7 @@
   buildInputs = with pkgs; [
     wabt               # WebAssembly Binary Toolkit, includes wat2wasm
     wasmer             # Wasmer runtime for running WebAssembly
+    wasm-pack          # Rust-generated WebAssembly building, packaging and publishing tool
     gcc                # GNU Compiler Collection
     gnumake            # Build tool
     emscripten         # WebAssembly compilation
