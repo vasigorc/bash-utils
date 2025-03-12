@@ -167,6 +167,12 @@
         "staticcheck": true,
         "hoverKind": "FullDocumentation"
       }
+    },
+    "protobuf-language-server": {
+      "binary": {
+        "path": "/opt/homebrew/bin/buf",
+        "arguments": ["beta", "lsp"]
+      }
     }
   },
   "preferred_line_length": 100,
