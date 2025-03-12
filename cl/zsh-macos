@@ -18,3 +18,8 @@ sudo lsof -nP -i:8080 | grep LISTEN | awk '{print $2}' | xargs kill -9
 
 # get public ip address
 ipconfig getifaddr en0
+
+# convert markdown to pdf
+# this requires pandoc and basictex being installed via brew
+# but it could work on other systems as well, with dependencies installed via other package managers
+pandoc README.md --pdf-engine=/Library/TeX/texbin/pdflatex -o ~/Documents/README.pdf
