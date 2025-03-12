@@ -137,6 +137,10 @@ This may evolve into a `ml.nix` eventually, however, for now we will keep this l
 - [Mojo](https://docs.modular.com/mojo/manual/) doesn't have a Nix package. We could install it manually with Nix's `mkDerivation` in the future
 - A few typical Python ML libraries, like PyTorch, TensorFlow, or even NumPy I think is better to manage on project level via `conda` or `pip`
 
+### jvm.nix
+
+This module provides a JVM development environment with sdkman, coursier, and metals
+
 ## Updating Nix stable version
 
 Versions of the packaged software packages depend on the underlying "pinned" Nix packages version.

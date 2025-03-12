@@ -6,8 +6,9 @@ let
   js = import ./js-module.nix { inherit pkgs; };
   platform = import ./platform-module.nix { inherit pkgs; };
   python = import ./python-module.nix { inherit pkgs;};
+  jvm = import ./jvm-module.nix { inherit pkgs; };
 in
 pkgs.mkShell {
-  buildInputs = compiled.buildInputs ++ default.buildInputs ++ js.buildInputs ++ platform.buildInputs ++ python.buildInputs;
-  shellHook = compiled.shellHook + default.shellHook + js.shellHook + python.shellHook;
+  buildInputs = compiled.buildInputs ++ default.buildInputs ++ js.buildInputs ++ platform.buildInputs ++ python.buildInputs ++ jvm.buildInputs;
+  shellHook = compiled.shellHook + default.shellHook + js.shellHook + python.shellHook + jvm.shellHook;
 }
