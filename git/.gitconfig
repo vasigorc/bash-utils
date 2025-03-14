@@ -1,20 +1,45 @@
 #just an example of global .gitconfig file
 [user]
-	name = <name>
-	email = <email>
+  name = <name>
+  email = <email>
 [credential]
-    # for MacOS users - keeps profile data in a protected space linked to your system account
-	helper = osxkeychain
+  # for MacOS users - keeps profile data in a protected space linked to your system account
+  helper = osxkeychain
 [init]
-    # also default in GitHub
+  # also default in GitHub
 	defaultBranch = main
+[filter "lfs"]
+  clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
 [core]
-	editor = vi
-	pager =
-[alias]
-    recent = for-each-ref --sort=committerdate refs/heads/ --format='%(HEAD) %(color:yellow)%(refname:short)%(color:reset) - %(color:red)%(objectname:short)%(color:reset) - %(contents:subject) - %(authorname) (%(color:green)%(committerdate:relative)%(color:reset))'
-    unstage = reset HEAD --
-	find = log --all --pretty=\"format:%Cgreen%H %Cblue%s\" --name-status -i --grep
+	editor = nvim
+	pager = less -F -X
 [pull]
 	# default reconcile divergent branches strategy is `rebase`
 	rebase = true
+# turn off pager for log and branch commands
+[pager]
+	log = false
+	branch = false
+	[mergetool]
+  keepBackup = false
+  prompt = false
+  writeToTemp = false
+[merge]
+  # Use this only if you have nvim properly configured
+  tool = nvim
+[mergetool "nvim"]
+  # Use this only if you have nvim properly configured
+  cmd = "nvim -d -c \"wincmd l\" -c \"norm ]c\" \"$LOCAL\" \"$MERGED\" \"$REMOTE\""
+[difftool "nvim"]
+  # Use this only if you have nvim properly configured
+	cmd = nvim -d $LOCAL $REMOTE
+[diff]
+  # Use this only if you have nvim properly configured
+	tool = nvim
+[alias]
+  recent = for-each-ref --sort=committerdate refs/heads/ --format='%(HEAD) %(color:yellow)%(refname:short)%(color:reset) - %(color:red)%(objectname:short)%(color:reset) - %(contents:subject) - %(authorname) (%(color:green)%(committerdate:relative)%(color:reset))'
+  unstage = reset HEAD --
+ 	find = log --all --pretty=\"format:%Cgreen%H %Cblue%s\" --name-status -i --grep
