@@ -1,15 +1,23 @@
 { pkgs }:
 
-{
-  buildInputs = with pkgs; [
+let
+  # Determine if we're running on Darwin (macOS)
+  isDarwin = pkgs.stdenv.isDarwin;
+
+  # Create a list of Python packages, conditionally including conda
+  pythonPackages = with pkgs; [
     # Core Python installation
     python311
 
     # Package managers and virtual environment tools
     python311Packages.pip
     python311Packages.virtualenv
-    conda
-
+  ]
+  # Conditionally add conda only for non-Darwin platforms
+  ++ (if isDarwin then [] else [ pkgs.conda ]);
+in
+{
+  buildInputs = pythonPackages ++ (with pkgs; [
     # Development tools
     python311Packages.ipython
     python311Packages.jupyter
@@ -25,7 +33,7 @@
     # Useful for scientific/ML builds
     openssl
     zlib
-  ];
+  ]);
 
   shellHook = ''
     # Set up core Python paths
