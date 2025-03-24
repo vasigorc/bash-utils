@@ -8,8 +8,9 @@ let
   python = import ./python-module.nix { inherit pkgs;};
   jvm = import ./jvm-module.nix { inherit pkgs; };
   asciidoc = import ./asciidoc-module.nix { inherit pkgs; };
+  nvim = import ./nvim-module.nix { inherit pkgs; };
 in
 pkgs.mkShell {
-  buildInputs = compiled.buildInputs ++ default.buildInputs ++ js.buildInputs ++ platform.buildInputs ++ python.buildInputs ++ jvm.buildInputs ++ asciidoc.buildInputs;
-  shellHook = compiled.shellHook + default.shellHook + js.shellHook + python.shellHook + jvm.shellHook + asciidoc.shellHook;
+  buildInputs = compiled.buildInputs ++ default.buildInputs ++ js.buildInputs ++ platform.buildInputs ++ python.buildInputs ++ jvm.buildInputs ++ asciidoc.buildInputs ++ nvim.buildInputs;
+  shellHook = compiled.shellHook + default.shellHook + js.shellHook + python.shellHook + jvm.shellHook + asciidoc.shellHook + nvim.shellHook;
 }
