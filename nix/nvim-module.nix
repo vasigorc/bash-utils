@@ -1,9 +1,12 @@
 { pkgs }:
 
+let
+  unstable = import (fetchTarball "https://github.com/NixOS/nixpkgs/archive/nixpkgs-unstable.tar.gz") {};
+in
 {
   buildInputs = with pkgs; [
     # Neovim with all dependencies
-    neovim
+    unstable.neovim
     nodejs
     # Language servers
     nodePackages.typescript-language-server
