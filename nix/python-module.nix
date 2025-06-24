@@ -18,6 +18,8 @@ let
 in
 {
   buildInputs = pythonPackages ++ (with pkgs; [
+    # package and project manager for Python (written in Rust)
+    uv
     # Development tools
     python311Packages.ipython
     python311Packages.jupyter
