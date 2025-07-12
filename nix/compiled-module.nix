@@ -49,8 +49,8 @@
     # Add required targets for nightly toolchain if not present
     check_and_add_target "wasm32-unknown-unknown" "nightly"
     check_and_add_target "wasm32-unknown-unknown" "stable"
-    check_and_add_target "wasm32-wasi" "nightly"
-    check_and_add_target "wasm32-wasi" "stable"
+    check_and_add_target "wasm32-wasip1" "nightly"
+    check_and_add_target "wasm32-wasip1" "stable"
     
     # Add required components for nightly toolchain if not present
     check_and_add_component "rustfmt" "stable"
