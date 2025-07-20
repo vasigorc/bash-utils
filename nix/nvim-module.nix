@@ -14,6 +14,7 @@
     fzf
     marksman
     ripgrep
+    rsync # For syncing local configs into the shell
     vimPlugins.lazygit-nvim
     lazygit
     asciidoctor
@@ -32,6 +33,12 @@
     mkdir -p "$XDG_DATA_HOME"
     mkdir -p "$XDG_STATE_HOME"
     mkdir -p "$XDG_CACHE_HOME"
+
+    # Sync Neovim configuration
+    if [ -d "$HOME/.config/nvim" ]; then
+      echo "Syncing Neovim config from $HOME/.config/nvim"
+      rsync -a --delete "$HOME/.config/nvim/" "$XDG_CONFIG_HOME/nvim/"
+    fi
 
     # create a default lazygit config if it doesn't exist
     if [ ! -f "$XDG_CONFIG_HOME/lazygit/config.yml" ]; then
