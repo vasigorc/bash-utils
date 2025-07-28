@@ -14,6 +14,7 @@
     rustup             # Rustup for Rust and Cargo
     go                 # Go programming language
     gopls              # Go language server
+    assemblyscript     # Arguably this could go into js-module.nix too, but I am using it as part of the WebAssembly set-up, which is already gathered in this module
   ];
 
   shellHook = ''
