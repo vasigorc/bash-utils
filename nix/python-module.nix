@@ -23,6 +23,7 @@ in
     # Development tools
     python311Packages.ipython
     python311Packages.jupyter
+    python313Packages.huggingface-hub
 
     # LSP tools
     pyright
