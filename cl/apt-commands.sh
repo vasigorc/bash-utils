@@ -8,7 +8,7 @@ sudo apt update
 sudo dpkg --configure -a
 sudo apt install nvidia-settings -y
 apt search nvidia | egrep -i driver | egrep -v "xserver|utils|modules|vaapi|extra|common|binary|graphics"
-sudo apt install nvidia-driver-570-server -y
+sudo apt install nvidia-driver-580-server -y
 reboot
 
 # It may be worth starting NVIDIA's persistence daemon to prevent
