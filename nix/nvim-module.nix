@@ -14,6 +14,7 @@
     fzf
     marksman
     ripgrep
+    tree-sitter
     rsync # For syncing local configs into the shell
     vimPlugins.lazygit-nvim
     lazygit
