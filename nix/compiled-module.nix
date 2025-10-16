@@ -22,11 +22,6 @@
     # Ensure rustup is initialized
     rustup default stable
 
-    # Add nightly toolchain if not present
-    if ! rustup toolchain list | grep -q "nightly"; then
-    rustup toolchain install nightly
-    fi
-
     # Function to check and add target for a specific toolchain
     check_and_add_target() {
       local target=$1
@@ -48,14 +43,23 @@
       fi
     }
 
-    # Add required targets for nightly toolchain if not present
-    check_and_add_target "wasm32-unknown-unknown" "nightly"
+    # Add required targets and components for stable toolchain
     check_and_add_target "wasm32-unknown-unknown" "stable"
-    check_and_add_target "wasm32-wasip1" "nightly"
-    check_and_add_target "wasm32-wasip1" "stable"
-    
-    # Add required components for nightly toolchain if not present
     check_and_add_component "rustfmt" "stable"
-    check_and_add_component "rustfmt" "nightly"
+
+    # Only manage nightly toolchain on non-Apple Silicon platforms
+    if [[ "$(uname -m)" != "arm64" || "$(uname -s)" != "Darwin" ]]; then
+      # Add nightly toolchain if not present
+      if ! rustup toolchain list | grep -q "nightly"; then
+        rustup toolchain install nightly
+      fi
+      
+      # Add required targets for nightly toolchain if not present
+      check_and_add_target "wasm32-unknown-unknown" "nightly"
+      check_and_add_target "wasm32-wasip1" "nightly"
+    
+      # Add required components for nightly toolchain if not present
+      check_and_add_component "rustfmt" "nightly"
+    fi
     '';
 }
