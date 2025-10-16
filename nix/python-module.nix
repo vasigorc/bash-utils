@@ -3,6 +3,7 @@
 let
   # Determine if we're running on Darwin (macOS)
   isDarwin = pkgs.stdenv.isDarwin;
+  isAppleSilicon = pkgs.stdenv.isAarch64 && isDarwin;
 
   # Create a list of Python packages, conditionally including conda
   pythonPackages = with pkgs; [
@@ -22,7 +23,7 @@ in
     uv
     # Development tools
     python311Packages.ipython
-    python311Packages.jupyter
+  ] ++ lib.optional (!isAppleSilicon) python311Packages.jupyter ++ [
     python313Packages.huggingface-hub
 
     # LSP tools
