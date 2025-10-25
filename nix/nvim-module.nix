@@ -19,6 +19,7 @@
     lazygit
     asciidoctor
     vimPlugins.markdown-preview-nvim
+    nixfmt-rfc-style
   ];
 
   shellHook = ''
@@ -38,6 +39,12 @@
     if [ -d "$HOME/.config/nvim" ]; then
       echo "Syncing Neovim config from $HOME/.config/nvim"
       rsync -a --delete "$HOME/.config/nvim/" "$XDG_CONFIG_HOME/nvim/"
+    fi
+
+    # Sync Neovim data (parsers, plugins, etc.)
+    if [ -d "$HOME/.local/share/nvim" ]; then
+      echo "Syncing Neovim data from $HOME/.local/share/nvim"
+      rsync -a "$HOME/.local/share/nvim/" "$XDG_DATA_HOME/nvim/"
     fi
 
     # create a default lazygit config if it doesn't exist
