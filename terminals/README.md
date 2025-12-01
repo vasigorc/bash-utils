@@ -12,3 +12,7 @@ In order to be able to use the same theme in NeoVim and in terminal, follow firs
 from this GitHub repository: <https://github.com/catppuccin/kitty/tree/main>
 
 Then copy [`./kitty.conf`](./kitty.conf) to `~/.config/kitty/` (on Linux).
+
+## tmux
+
+Structured cheat sheets for using tmux terminal multiplexer are given in [tmux folder](./tmux/)
