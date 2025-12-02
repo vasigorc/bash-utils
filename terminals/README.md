@@ -16,3 +16,6 @@ Then copy [`./kitty.conf`](./kitty.conf) to `~/.config/kitty/` (on Linux).
 ## tmux
 
 Structured cheat sheets for using tmux terminal multiplexer are given in [tmux folder](./tmux/)
+
+- [Core Concepts and Navigation](./tmux/1-CoreConceptsNavigation.md)
+- [Advanced Window Management](./tmux/2-AdvancedWindowManagement.md)
