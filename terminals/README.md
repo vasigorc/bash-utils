@@ -19,5 +19,6 @@ Structured cheat sheets for using tmux terminal multiplexer are given in [tmux f
 
 - [Core Concepts and Navigation](./tmux/1-CoreConceptsNavigation.md)
 - [Advanced Window Management](./tmux/2-AdvancedWindowManagement.md)
+- [Configuration and Customization](./tmux/3-ConfigurationAndCustomization.md)
 
 This directory also contains custom [tmux.conf](./tmux/.tmux.conf) file.
