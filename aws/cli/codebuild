@@ -1,0 +1,14 @@
+#! /usr/bin/env bash
+
+# Get a list of build project names
+aws codebuild list-projects --profile <YOUR_PROFILE>
+
+# Get a list of build identifiers for the specified build project
+aws codebuild list-builds-for-project \
+  --project-name <YOUR_PROJECT_NAME> \
+  --profile <YOUR_PROFILE>
+
+# Gets information about one or more builds
+aws codebuild batch-get-builds \
+  --ids <PROJECT_BUILD_ID> \
+  --profile <YOUR_PROFILE>
