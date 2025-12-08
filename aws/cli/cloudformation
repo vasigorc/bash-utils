@@ -29,7 +29,7 @@ aws cloudformation describe-stack-events \
 aws cloudformation delete-stack \
 --stack-name <YOUR_STACK_NAME> \
 --profile <YOUR_PROFILE> \
---region <YOUW_AWS_REGION> \
+--region <YOUW_AWS_REGION> 
 
 # "waiter" command that is typically used after previous (`delete-stack`) command
 # It polls every 30 seconds (by default) to check the stack's status and pauses
@@ -37,4 +37,4 @@ aws cloudformation delete-stack \
 aws cloudformation wait stack-delete-complete \
 --stack-name <YOUR_STACK_NAME> \
 --profile <YOUR_PROFILE> \
---region <YOUW_AWS_REGION> \
+--region <YOUW_AWS_REGION> 

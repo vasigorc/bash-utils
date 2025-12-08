@@ -6,3 +6,8 @@ aws s3 ls s3://$BUCKET_PATH | rev | cut -d' ' -f 1 | rev
 # get S3 bucket size with AWS CLI
 aws s3 ls s3://my_bucket/ --recursive --human-readable --summarize | tail -2
 
+# remove a bucket
+aws s3 rb s3://<BUCKET_PATH> \
+  --force \
+  --profile <YOUR_PROFILE> \
+  --region <YOUW_AWS_REGION> 
