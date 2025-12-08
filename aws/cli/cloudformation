@@ -1,0 +1,40 @@
+#! /usr/bin/env bash
+
+# show high level information about a stack:
+# status: CREATE_COMPLETE, ROLLBACK_COMPLETE, etc.
+# stack name and id, outputs, parameters, tags and capabitilies
+aws cloudformation describe-stacks \
+--stack-name <YOUR_STACK_NAME> \
+--profile <YOUR_PROFILE> \
+--region <YOUW_AWS_REGION> 2>&cd -1
+
+# provides a detailed chronological history of FAILED only events that have occurred
+# within the requested stack: actions taken on resources within the stack
+aws cloudformation describe-stack-events \
+--stack-name <YOUR_STACK_NAME> \
+--profile <YOUR_PROFILE> \
+--region <YOUW_AWS_REGION> \
+--query 'StackEvents[?ResourceStatus==`CREATE_FAILED`].[LogicalResourceId,ResourceStatusReason]' \
+--output table
+
+# same as above but works for all events: no filtering
+aws cloudformation describe-stack-events \
+--stack-name <YOUR_STACK_NAME> \
+--profile <YOUR_PROFILE> \
+--region <YOUW_AWS_REGION> \
+--query 'StackEvents[].[Timestamp,ResourceStatus,LogicalResourceId]' \
+--output table
+
+# initiates deletion process for a specified stack. Returns immediately.
+aws cloudformation delete-stack \
+--stack-name <YOUR_STACK_NAME> \
+--profile <YOUR_PROFILE> \
+--region <YOUW_AWS_REGION> \
+
+# "waiter" command that is typically used after previous (`delete-stack`) command
+# It polls every 30 seconds (by default) to check the stack's status and pauses
+# until CF reports that the stack deletion either complete or failed
+aws cloudformation wait stack-delete-complete \
+--stack-name <YOUR_STACK_NAME> \
+--profile <YOUR_PROFILE> \
+--region <YOUW_AWS_REGION> \
