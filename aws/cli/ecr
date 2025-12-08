@@ -1,0 +1,14 @@
+#! /usr/bin/env bash
+
+# list images in an existing repo
+aws ecr list-images \
+  --repository-name <YOUR_REPO_NAME> \
+  --profile <YOUR_PROFILE> \
+  --region <YOUW_AWS_REGION> \
+
+# delete a repository⚠️ 
+aws ecr delete-repository \
+  --repository-name <YOUR_REPO_NAME> \
+  --profile <YOUR_PROFILE> \
+  --region <YOUW_AWS_REGION> \
+  --force
