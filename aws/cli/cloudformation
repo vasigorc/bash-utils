@@ -38,3 +38,11 @@ aws cloudformation wait stack-delete-complete \
 --stack-name <YOUR_STACK_NAME> \
 --profile <YOUR_PROFILE> \
 --region <YOUW_AWS_REGION> 
+
+# describe the stack
+aws cloudformation describe-stacks \
+  --stack-name <YOUR_STACK_NAME> \
+  --profile <YOUR_PROFILE> \
+  --region <YOUW_AWS_REGION> \
+  --query 'Stacks[0].Outputs' \
+  --output table
