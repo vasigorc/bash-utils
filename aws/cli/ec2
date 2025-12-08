@@ -1,0 +1,18 @@
+#! /usr/bin/env bash
+
+# Get instance profile association for an EC2 instance
+# That is: the link between EC2 instance and IAM role
+aws ec2 describe-iam-instance-profile-associations \
+--filters "Name=instance-id,Values=<YOUR_INSTANCE_ID>" \
+--query "IamInstanceProfileAssociations[0].AssociationId" \
+--profile <YOUR_PROFILE> \
+--region <YOUW_AWS_REGION> \
+--output text
+
+
+# replace profile association for an EC2 instance
+aws ec2 replace-iam-instance-profile-association \
+  --association-id <INSTANCE_PROFILE_ASSOCIATION> \
+  --iam-instance-profile Name=<NEW_PROFILE_NAME> \
+  --profile <YOUR_PROFILE> \
+  --region <YOUW_AWS_REGION>
