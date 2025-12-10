@@ -46,3 +46,18 @@ aws cloudformation describe-stacks \
   --region <YOUW_AWS_REGION> \
   --query 'Stacks[0].Outputs' \
   --output table
+
+aws cloudformation update-stack \
+  --stack-name <YOUR_STACK_NAME> \
+  --template-body file://<PATH_TO_FILE>.yaml \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --profile <YOUR_PROFILE> \
+  --region <YOUW_AWS_REGION> 
+
+# list healthy stacks
+aws cloudformation list-stacks  \
+  --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE \
+  --query "StackSummaries[].StackName" \
+  --profile <YOUR_PROFILE> \
+  --output table \
+  --region <YOUW_AWS_REGION> 
