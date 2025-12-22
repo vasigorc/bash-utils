@@ -1,0 +1,6 @@
+#! /usr/bin/env bash
+aws lambda list-functions  \
+  --output "table" \
+  --query "Functions[].FunctionName" \
+  --profile <YOUR_PROFILE> \
+  --region <YOUW_AWS_REGION>
