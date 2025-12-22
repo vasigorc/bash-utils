@@ -19,7 +19,9 @@
     lazygit
     asciidoctor
     vimPlugins.markdown-preview-nvim
+    # Nix tools
     nixfmt-rfc-style
+    statix
   ];
 
   shellHook = ''
