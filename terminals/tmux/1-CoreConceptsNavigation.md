@@ -47,6 +47,7 @@
 | `Ctrl+b s`                       | **Interactive session switcher** (arrow keys + Enter) |
 | `Ctrl+b $`                       | Rename current session                                |
 | `Ctrl+b :kill-session -t <name>` | Kill session from the command mode                    |
+| `Ctrl+b :new`                    | Start a new session                                   |
 
 Use cases:
 
