@@ -15,4 +15,11 @@ aws ec2 replace-iam-instance-profile-association \
   --association-id <INSTANCE_PROFILE_ASSOCIATION> \
   --iam-instance-profile Name=<NEW_PROFILE_NAME> \
   --profile <YOUR_PROFILE> \
-  --region <YOUW_AWS_REGION>
+  --region <YOUR_AWS_REGION>
+
+# check traffic permissions for a security group
+aws ec2 describe-security-groups \
+  --group-names <SECURITY_GROUP_NAME> \
+  --region <YOUR_AWS_REGION> \
+  --profile <YOUR_PROFILE> \
+  --query 'SecurityGroups[0].IpPermissions'
