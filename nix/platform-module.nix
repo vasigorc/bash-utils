@@ -2,11 +2,14 @@
 
 {
   buildInputs = with pkgs; [
-# Docker and related tools
+    # Docker and related tools
     docker
-      docker-compose
+    docker-compose
+    terraform
+    tflint
+    terraform-docs
+    tfsec
   ];
 
-  shellHook = ''
-    '';
+  shellHook = '''';
 }
