@@ -12,7 +12,10 @@
   - [Graceful Cleanup](#graceful-cleanup)
     - [Closing Panes](#closing-panes)
     - [Closing Windows](#closing-windows)
-  - [Session Management Best Practices](#session-management-best-practices) - [Creating & Switching Sessions](#creating-switching-sessions)
+  - [Pane Output Logging](#pane-output-logging)
+    - [Pipe Pane (Capture Terminal Output)](#pipe-pane-capture-terminal-output)
+  - [Session Management Best Practices](#session-management-best-practices)
+    - [Creating & Switching Sessions](#creating-switching-sessions)
   <!--toc:end-->
 
 **Date**: 2025-12-02
@@ -140,6 +143,68 @@
 | --------------- | ------------------------------------------------------- |
 | Close all panes | Exit each pane; window auto-closes when last pane exits |
 | `Ctrl+b &`      | Kill entire window, asks confirmation (y/n)             |
+
+## Pane Output Logging
+
+### Pipe Pane (Capture Terminal Output)
+
+> **Pipe Pane** = **Output Logging** - Capture all terminal output to a file
+
+| Command                              | Description                                   |
+| ------------------------------------ | --------------------------------------------- |
+| `Ctrl+b :pipe-pane -o 'cat >>file'`  | Toggle logging current pane output to file    |
+| `Ctrl+b :pipe-pane`                  | Stop logging (toggle off)                     |
+| `Ctrl+b :pipe-pane -o 'cat >>~/log'` | Log to home directory file                    |
+
+**Format Specifiers:**
+
+| Variable | Description                    | Example |
+| -------- | ------------------------------ | ------- |
+| `#I`     | Window index                   | `2`     |
+| `#P`     | Pane index                     | `1`     |
+| `#S`     | Session name                   | `dev`   |
+| `#W`     | Window name                    | `logs`  |
+
+**Examples:**
+
+```bash
+# Log pane output with window and pane identifiers
+Ctrl+b :pipe-pane -o 'cat >>output.#I-#P'
+# Creates file: output.2-1 (window 2, pane 1)
+
+# Log with session and window context
+Ctrl+b :pipe-pane -o 'cat >>~/logs/#S-#W.log'
+# Creates file: ~/logs/dev-logs.log
+
+# Using custom command to process output
+Ctrl+b :pipe-pane -o 'terminal >>chapter_2_exercises.#I-#P'
+# Pipes through 'terminal' command to file
+
+# Stop logging
+Ctrl+b :pipe-pane
+```
+
+**Workflow:**
+
+1. Start logging before running commands: `Ctrl+b :pipe-pane -o 'cat >>session.log'`
+2. Run your commands (terraform, build, tests, etc.)
+3. Stop logging: `Ctrl+b :pipe-pane`
+4. Review output: `less session.log` or `cat session.log`
+
+**Use Cases:**
+
+- Capture build logs for later analysis
+- Record terraform/deployment outputs
+- Save debugging sessions
+- Document terminal workflows for tutorials
+- Keep audit trail of administrative commands
+
+**Tips:**
+
+- Use `>>` (append) instead of `>` (overwrite) to preserve logs across toggles
+- Files are created in current working directory unless absolute path specified
+- Logging continues even when switching panes/windows
+- Check if logging is active: Look for `[pipe]` indicator in pane status
 
 ## Session Management Best Practices
 
