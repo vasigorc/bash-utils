@@ -16,6 +16,7 @@ let
   jvm = import ./jvm-module.nix { inherit pkgs; };
   asciidoc = import ./asciidoc-module.nix { inherit pkgs; };
   nvim = import ./nvim-module.nix { inherit pkgs; };
+  sqls = import ./sql-module.nix { inherit pkgs; };
 in
 pkgs.mkShell {
   buildInputs =
@@ -26,7 +27,8 @@ pkgs.mkShell {
     ++ python.buildInputs
     ++ jvm.buildInputs
     ++ asciidoc.buildInputs
-    ++ nvim.buildInputs;
+    ++ nvim.buildInputs
+    ++ sqls.buildInputs;
   shellHook =
     compiled.shellHook
     + default.shellHook
@@ -34,5 +36,6 @@ pkgs.mkShell {
     + python.shellHook
     + jvm.shellHook
     + asciidoc.shellHook
-    + nvim.shellHook;
+    + nvim.shellHook
+    + sqls.shellHook;
 }
