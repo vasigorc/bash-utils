@@ -15,7 +15,8 @@
 	required = true
 [core]
 	editor = nvim
-	pager = less -F -X
+  pager = delta
+	; pager = less -F -X
 [pull]
 	# default reconcile divergent branches strategy is `rebase`
 	rebase = true
@@ -39,7 +40,12 @@
 [diff]
   # Use this only if you have nvim properly configured
 	tool = nvim
+  colorMoved = default
 [alias]
   recent = for-each-ref --sort=committerdate refs/heads/ --format='%(HEAD) %(color:yellow)%(refname:short)%(color:reset) - %(color:red)%(objectname:short)%(color:reset) - %(contents:subject) - %(authorname) (%(color:green)%(committerdate:relative)%(color:reset))'
   unstage = reset HEAD --
  	find = log --all --pretty=\"format:%Cgreen%H %Cblue%s\" --name-status -i --grep
+[interactive]
+  diffFilter = delta --color-only
+[delta]
+  navigate = true # use n and N to move between diff sections
