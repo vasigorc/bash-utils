@@ -12,6 +12,10 @@ export ZSH="$HOME/.oh-my-zsh"
 # See https://github.com/ohmyzsh/ohmyzsh/wiki/Themes
 ZSH_THEME="agnoster"
 
+# checkout remote git branches interactively
+alias fgcor='gco --track $(gbr | fzf | sed "s|origin/||")'
+# fuzzy checkout branch
+alias fgco='gco $(gbr | fzf | sed "s|origin/||")'
 # Vim finder
 alias vf='fd --type f --hidden --exclude .git | fzf-tmux -p | xargs nvim'
 # Set list of themes to pick from when loading at random
