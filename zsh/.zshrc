@@ -44,3 +44,5 @@ alias vim="nvim"
 export VIMCONFIG=~/.config/nvim
 export VIMDATA=~/.local/share/nvim
 
+# Setup fzf key bindings and fuzzy completion
+eval "$(fzf --zsh)"
