@@ -10,6 +10,8 @@
   - [What Gets Saved](#what-gets-saved)
 - [tmux-continuum (Automatic Persistence)](#tmux-continuum-automatic-persistence)
   - [Configuration](#configuration)
+- [vim-tmux-navigator (Seamless Vim/Tmux Navigation)](#vim-tmux-navigator-seamless-vimtmux-navigation)
+  - [Usage](#usage-1)
 - [tmux-yank (Clipboard Integration)](#tmux-yank-clipboard-integration)
   - [Copy Mode with Clipboard](#copy-mode-with-clipboard)
 - [Plugin Configuration Reference](#plugin-configuration-reference)
@@ -130,6 +132,57 @@ tmux show-option -gv @continuum-restore          # Should show: on
 - `tmux-continuum`: Automatic safety net every 15 minutes
 - Best of both: Manual control + automatic backup
 
+## vim-tmux-navigator (Seamless Vim/Tmux Navigation)
+
+> Navigate between vim splits and tmux panes with the same keybindings
+
+**Installation:**
+
+```
+# Add to .tmux.conf plugins section
+set -g @plugin 'christoomey/vim-tmux-navigator'
+```
+
+**Install Steps:**
+
+1. Add plugin line to `.tmux.conf`
+2. Reload config: `Ctrl+b r`
+3. Install plugin: `Ctrl+b I` (capital I)
+
+**Vim Setup Required:**
+
+Install the corresponding vim plugin. For LazyVim/lazy.nvim:
+
+```lua
+{
+  "christoomey/vim-tmux-navigator",
+  lazy = false,
+}
+```
+
+### Usage
+
+| Key       | Description                                    |
+| --------- | ---------------------------------------------- |
+| `Ctrl+h`  | Move to left pane/split                        |
+| `Ctrl+j`  | Move to pane/split below                       |
+| `Ctrl+k`  | Move to pane/split above                       |
+| `Ctrl+l`  | Move to right pane/split                       |
+| `Ctrl+\`  | Move to previous pane/split                    |
+
+**How It Works:**
+
+- Same keybindings work in both vim and tmux
+- Seamlessly move between vim splits and tmux panes
+- No mental context switching between environments
+- Works in nested sessions
+
+**Use Cases:**
+
+- Edit code in vim split, check logs in tmux pane - navigate with same keys
+- Multiple vim instances in different tmux panes
+- Quick navigation in complex layouts
+
 ## tmux-yank (Clipboard Integration)
 
 > Copy from tmux directly to system clipboard
@@ -194,6 +247,7 @@ set -g @plugin 'tmux-plugins/tpm'
 set -g @plugin 'tmux-plugins/tmux-resurrect'
 set -g @plugin 'tmux-plugins/tmux-continuum'
 set -g @plugin 'tmux-plugins/tmux-yank'
+set -g @plugin 'christoomey/vim-tmux-navigator'
 
 # Catppuccin theme (optional)
 set -g @plugin "mark-pitblado/catppuccin-tmux"
