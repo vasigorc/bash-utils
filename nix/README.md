@@ -6,7 +6,7 @@ languages / frameworks that I may be using:
 ```shell
 compiled.nix   # Rust, WASM, Zig, LLVM
 jvm.nix        # SDKMAN, Metals, Kotlin
-ruby.nix       # Ruby, Gems
+ruby.nix       # Ruby 3.4, ruby-lsp, rubocop
 ml.nix         # Python, Mojo, Max
 platform.nix   # AWS, Terraform
 default.nix    # Docker, Zsh, JQ, Git, Fzf, etc.
@@ -140,6 +140,21 @@ This may evolve into a `ml.nix` eventually, however, for now we will keep this l
 ### jvm.nix
 
 This module provides a JVM development environment with sdkman, coursier, and metals
+
+### ruby.nix
+
+This module provides a Ruby development environment with Ruby 3.4, ruby-lsp, and rubocop for LazyVim integration:
+
+```shell
+nix-shell ruby.nix
+[nix-shell:~/repos/bash-utils/nix]$ ruby --version
+ruby 3.4.x ...
+
+[nix-shell:~/repos/bash-utils/nix]$ rubocop --version
+1.x.x
+```
+
+This is useful when working on Ruby/Rails projects with Neovim, as it provides the LSP server and formatter that LazyVim's Ruby extra expects.
 
 ## Updating Nix stable version
 

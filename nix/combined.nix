@@ -17,6 +17,7 @@ let
   asciidoc = import ./asciidoc-module.nix { inherit pkgs; };
   nvim = import ./nvim-module.nix { inherit pkgs; };
   sqls = import ./sql-module.nix { inherit pkgs; };
+  ruby = import ./ruby-module.nix { inherit pkgs; };
 in
 pkgs.mkShell {
   buildInputs =
@@ -28,7 +29,8 @@ pkgs.mkShell {
     ++ jvm.buildInputs
     ++ asciidoc.buildInputs
     ++ nvim.buildInputs
-    ++ sqls.buildInputs;
+    ++ sqls.buildInputs
+    ++ ruby.buildInputs;
   shellHook =
     compiled.shellHook
     + default.shellHook
