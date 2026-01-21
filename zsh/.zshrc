@@ -40,9 +40,16 @@ export PAGER=""
 
 export JAVA_HOME=/Users/vasilegorcinschi/.sdkman/candidates/java/current
 alias vim="nvim"
+export EDITOR='nvim'
 
 export VIMCONFIG=~/.config/nvim
 export VIMDATA=~/.local/share/nvim
 
 # Setup fzf key bindings and fuzzy completion
 eval "$(fzf --zsh)"
+
+# Install fzf-git.sh before uncommenting: https://github.com/junegunn/fzf-git.sh
+# source ~/fzf-git.sh/fzf-git.sh
+
+# Install eza before uncommenting: brew install eza
+# alias ls='eza -l --git --icons --group-directories-first'
