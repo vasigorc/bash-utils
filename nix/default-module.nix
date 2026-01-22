@@ -13,6 +13,7 @@
     fzf-git-sh
     silver-searcher
     ripgrep # similar to silver-search but integrates well with vim/nvim
+    eza # modern replacement for ls
   ];
 
   shellHook = ''
