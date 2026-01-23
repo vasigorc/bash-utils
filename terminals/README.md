@@ -28,3 +28,7 @@ Structured cheat sheets for using tmux terminal multiplexer are given in [tmux f
 - [Plugins and Power Features](./tmux/4-PluginsAndPowerFeatures.md)
 
 This directory also contains custom [tmux.conf](./tmux/.tmux.conf) file.
+
+Once `tmux` is loaded and plugins installed it should look as follows:
+
+![tmux preview](./images/tmux_img.png)
