@@ -49,7 +49,19 @@ export VIMDATA=~/.local/share/nvim
 eval "$(fzf --zsh)"
 
 # Install fzf-git.sh before uncommenting: https://github.com/junegunn/fzf-git.sh
-# source ~/fzf-git.sh/fzf-git.sh
+source ~/fzf-git.sh/fzf-git.sh
 
 # Install eza before uncommenting: brew install eza
-# alias ls='eza -l --git --icons --group-directories-first'
+alias ls='eza -l --git --icons --group-directories-first'
+
+# Detect OS and set clipboard command
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    CLIPBOARD_CMD="pbcopy"
+else
+    CLIPBOARD_CMD="xclip -selection clipboard"
+fi
+
+# search through aliases and copy the alias to the clipboard
+alias af='alias | fzf | cut -d= -f1 | $CLIPBOARD_CMD'
+# search through history and copy the entry to the clipboard
+alias hf='history | fzf | sed "s/^[ ]*[0-9]*[ ]*//" | $CLIPBOARD_CMD'
