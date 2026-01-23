@@ -2,6 +2,13 @@
 
 This directory is designed to hold set-up configurations/scripts/instructions for setting-up terminals/terminal emulators.
 
+## Prerequisites
+
+For proper functioning of mentioned below items please install the following using your system's package manager:
+
+- tmux
+- font-jetbrains-mono-nerd-font
+
 ## Kitty
 
 Blasting fast, feature-rich, GPU based terminal emulator with great TMUX integration.
