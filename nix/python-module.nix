@@ -8,11 +8,11 @@ let
   # Create a list of Python packages, conditionally including conda
   pythonPackages = with pkgs; [
     # Core Python installation
-    python311
+    python312
 
     # Package managers and virtual environment tools
-    python311Packages.pip
-    python311Packages.virtualenv
+    python312Packages.pip
+    python312Packages.virtualenv
   ]
   # Conditionally add conda only for non-Darwin platforms
   ++ (if isDarwin then [] else [ pkgs.conda ]);
@@ -22,13 +22,13 @@ in
     # package and project manager for Python (written in Rust)
     uv
     # Development tools
-    python311Packages.ipython
-  ] ++ lib.optional (!isAppleSilicon) python311Packages.jupyter ++ [
+    python312Packages.ipython
+  ] ++ lib.optional (!isAppleSilicon) python312Packages.jupyter ++ [
     python313Packages.huggingface-hub
 
     # LSP tools
     pyright
-    python311Packages.ruff
+    python312Packages.ruff
 
     # Build dependencies
     gcc
@@ -41,7 +41,7 @@ in
 
   shellHook = ''
     # Set up core Python paths
-    export PYTHONPATH="$PYTHONPATH:${pkgs.python311}/lib/python3.11/site-packages"
+    export PYTHONPATH="$PYTHONPATH:${pkgs.python312}/lib/python3.12/site-packages"
 
     # Better Python REPL experience
     export PYTHONSTARTUP="$HOME/.pythonrc"
