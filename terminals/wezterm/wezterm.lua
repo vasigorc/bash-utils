@@ -183,10 +183,10 @@ config.keys = {
   { key = "x", mods = "CMD|SHIFT", action = act.ActivateCopyMode },
 
   -- Shift+Enter inserts a newline in Claude Code / Pi instead of submitting.
-  -- Terminals send a bare CR for both Enter and Shift+Enter, so emit ESC+CR
-  -- (the "meta newline" these TUIs understand) to disambiguate. Passes cleanly
-  -- through tmux.
-  { key = "Enter", mods = "SHIFT", action = act.SendString("\x1b\r") },
+  -- Send the CSI-u encoding (ESC [ 13 ; 2 u) rather than a bare ESC+CR: it is a
+  -- single atomic sequence that survives tmux's escape-time/Alt handling and
+  -- matches `extended-keys-format csi-u`, so it forwards intact through tmux.
+  { key = "Enter", mods = "SHIFT", action = act.SendString("\x1b[13;2u") },
 }
 
 -- Disabled tmux-replacement layer. Flip enable_wezterm_tmux_replacement_keys to
