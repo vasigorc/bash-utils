@@ -181,6 +181,12 @@ config.keys = {
   -- Direct WezTerm copy-mode entry for Claude Code / Pi output. This avoids
   -- stealing Ctrl-b from tmux; WezTerm's default Ctrl-Shift-X still works too.
   { key = "x", mods = "CMD|SHIFT", action = act.ActivateCopyMode },
+
+  -- Shift+Enter inserts a newline in Claude Code / Pi instead of submitting.
+  -- Terminals send a bare CR for both Enter and Shift+Enter, so emit ESC+CR
+  -- (the "meta newline" these TUIs understand) to disambiguate. Passes cleanly
+  -- through tmux.
+  { key = "Enter", mods = "SHIFT", action = act.SendString("\x1b\r") },
 }
 
 -- Disabled tmux-replacement layer. Flip enable_wezterm_tmux_replacement_keys to
