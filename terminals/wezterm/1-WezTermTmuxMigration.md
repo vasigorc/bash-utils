@@ -53,6 +53,7 @@ Important appearance choices:
 
 - Font: `JetBrainsMonoNL Nerd Font Mono` through `wezterm.font_with_fallback`.
 - Font size: `13.0`.
+- Initial window size: `140` columns by `40` rows, tuned for laptop-first use.
 - Theme: Catppuccin Macchiato, with the active Kitty palette pinned explicitly.
 - Scrollback: `10000` lines.
 - Bell disabled, opacity `0.95`.

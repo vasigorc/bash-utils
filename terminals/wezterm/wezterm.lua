@@ -22,6 +22,9 @@ config.font = wezterm.font_with_fallback({
 config.font_size = 13.0
 config.audible_bell = "Disabled"
 config.window_background_opacity = 0.95
+-- Laptop-first startup size, measured in terminal cells rather than pixels.
+config.initial_cols = 140
+config.initial_rows = 40
 config.scrollback_lines = 10000
 config.alternate_buffer_wheel_scroll_speed = 1
 config.enable_scroll_bar = false
