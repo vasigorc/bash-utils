@@ -1,9 +1,9 @@
-# WezTerm tmux-style setup
+# WezTerm Kitty replacement setup
 
 <!--toc:start-->
 - [Config location](#config-location)
 - [Why WezTerm](#why-wezterm)
-- [tmux-style mappings](#tmux-style-mappings)
+- [Default mode: Kitty replacement plus real tmux](#default-mode-kitty-replacement-plus-real-tmux)
 - [Copy mode and search](#copy-mode-and-search)
 - [Claude Code / OpenCode scrollback](#claude-code--opencode-scrollback)
 - [Known limitations](#known-limitations)
@@ -34,7 +34,7 @@ wezterm --config-file ~/.config/wezterm/wezterm.lua show-keys --lua >/tmp/wezter
 
 ## Why WezTerm
 
-Goal: keep most tmux/Kitty muscle memory while using WezTerm's native panes, tabs, copy mode, font fallback, and Catppuccin rendering.
+Goal: use WezTerm as the Kitty replacement first: preserve Catppuccin/font quality and let real tmux keep owning `Ctrl+b`. The WezTerm-as-tmux-replacement bindings are preserved in the config, but disabled by default.
 
 Important appearance choices:
 
@@ -44,42 +44,39 @@ Important appearance choices:
 - Scrollback: `10000` lines.
 - Bell disabled, opacity `0.95`.
 
-## tmux-style mappings
+## Default mode: Kitty replacement plus real tmux
 
-WezTerm calls tmux windows "tabs". The config maps the familiar tmux prefix to WezTerm actions:
+The current config intentionally does **not** set a WezTerm `Ctrl+b` leader. This means `Ctrl+b` passes through to tmux, so attaching to a real session works as expected:
+
+```bash
+tmux a -t infra-central
+```
+
+Inside tmux, use your existing tmux mappings:
 
 | Key | Action |
 | --- | --- |
-| `Ctrl+b c` | New tab/window |
-| `Ctrl+b ,` | Rename current tab/window |
-| `Ctrl+b &` | Close current tab/window, with confirmation |
-| `Ctrl+b n` / `Ctrl+b p` | Next / previous tab |
-| `Ctrl+b l` | Toggle between the last two tabs/windows |
-| `Ctrl+b 1..9` | Jump to tab number |
-| `Ctrl+b %` | Side-by-side split |
-| `Ctrl+b "` | Top/bottom split |
-| `Ctrl+b |` | Side-by-side split alias |
-| `Ctrl+b -` | Top/bottom split alias |
-| `Ctrl+b h/j/k` | Move pane left/down/up |
-| `Ctrl+b Shift+l` | Move pane right |
-| `Ctrl+b Arrow` | Move between panes |
-| `Alt+Arrow` | Resize pane by 5 cells |
-| `Ctrl+b Shift+Arrow` | Resize pane by 10 cells |
 | `Ctrl+b z` | Toggle pane zoom |
-| `Ctrl+b x` | Close current pane, with confirmation |
-| `Ctrl+b r` | Reload WezTerm config |
-| `Ctrl+b :` | Open WezTerm command palette |
+| `Ctrl+b [` | Enter tmux copy mode |
+| `Ctrl+b l` | Toggle between the last two tmux windows |
+| `Ctrl+b %` / `Ctrl+b "` | Split tmux panes |
 
-Note: shifted punctuation can vary by keyboard layout/terminal reporting. The config binds both punctuation and physical shifted-key variants for `%` and `"`, but `|` / `-` are kept as reliable aliases.
+The optional WezTerm-native tmux replacement layer is still present in `~/.config/wezterm/wezterm.lua`, guarded by:
+
+```lua
+local enable_wezterm_tmux_replacement_keys = false
+```
+
+Flip that to `true` only if you want WezTerm itself to own `Ctrl+b` panes/tabs instead of running tmux inside WezTerm. When enabled, WezTerm maps `Ctrl+b c`, `Ctrl+b ,`, `Ctrl+b l`, splits, copy-mode, pane resize, and tab switching to native WezTerm actions.
 
 ## Copy mode and search
 
-Enter copy mode:
+Default mode keeps `Ctrl+b [` for tmux, so use WezTerm's direct copy-mode bindings when you want terminal-level scrollback/copy:
 
 ```text
-Ctrl+b [
+Ctrl+Shift+x
+Cmd+Shift+x
 ```
-
 Useful keys inside copy mode:
 
 | Key | Action |
@@ -98,7 +95,7 @@ Useful keys inside copy mode:
 
 WezTerm does not perfectly clone tmux's `/` forward vs `?` backward search model. In this config, both `/` and `?` open the search pattern editor; use `n` and `N` to move through matches. While typing the search pattern, WezTerm's default search table supports `Ctrl+n` / `Ctrl+p`, arrow keys, and `PageUp` / `PageDown` for match navigation.
 
-Alternative if this still feels awkward: use WezTerm's command palette (`Ctrl+Shift+p` or `Ctrl+b :`) and search-related commands, or use Claude Code transcript mode for Claude-specific history.
+Alternative if this still feels awkward: use WezTerm's command palette (`Ctrl+Shift+p`) and search-related commands, or use Claude Code transcript mode for Claude-specific history.
 
 ## Claude Code / OpenCode scrollback
 
@@ -134,6 +131,6 @@ This only controls WezTerm's wheel-to-arrow fallback when the app has not enable
 
 ## Known limitations
 
-- WezTerm tabs are not tmux sessions. They do not survive terminal process exit like tmux sessions do.
-- Some exact tmux copy-mode search semantics are not available one-for-one.
+- WezTerm default mode now relies on real tmux for sessions, panes, and `Ctrl+b` muscle memory.
+- The disabled WezTerm-native tmux layer is useful for experiments, but it conflicts with real tmux because both want `Ctrl+b`.
 - Claude Code fullscreen content lives in Claude's TUI, not WezTerm native scrollback. Use `CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN=1` for classic renderer, or Claude transcript mode when fullscreen is needed.
