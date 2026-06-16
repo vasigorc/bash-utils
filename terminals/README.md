@@ -36,6 +36,14 @@ Structured cheat sheets for using tmux terminal multiplexer are given in [tmux f
 
 This directory also contains custom [tmux.conf](./tmux/.tmux.conf) file.
 
+## WezTerm
+
+WezTerm trial config and tmux-muscle-memory notes are in [wezterm folder](./wezterm/):
+
+- [WezTerm tmux-style setup](./wezterm/1-WezTermTmuxMigration.md)
+
+The live config is currently `~/.config/wezterm/wezterm.lua`. Use `wezterm --config-file ~/.config/wezterm/wezterm.lua show-keys --lua` to validate it before launching.
+
 Once `tmux` is loaded and plugins installed it should look as follows:
 
 ![tmux preview](./images/tmux_img.png)
