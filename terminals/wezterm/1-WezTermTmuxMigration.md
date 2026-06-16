@@ -20,6 +20,19 @@ Primary config:
 ~/.config/wezterm/wezterm.lua
 ```
 
+Repo copy:
+
+```bash
+terminals/wezterm/wezterm.lua
+```
+
+Install/update from this repo:
+
+```bash
+mkdir -p ~/.config/wezterm
+cp terminals/wezterm/wezterm.lua ~/.config/wezterm/wezterm.lua
+```
+
 Try it explicitly without making WezTerm your default terminal:
 
 ```bash
