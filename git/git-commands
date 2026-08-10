@@ -102,3 +102,15 @@ git describe --tags  <commit-id>
 
 # only list branches that current user has commits in
 git for-each-ref --format='%(refname:short) %(authorname)' refs/heads | grep -E "$(git config user.name)" | cut -d' ' -f1
+
+# locally ignore an untracked file without changing the repository's .gitignore
+# local_path is relative to the current directory; the generated pattern is
+# anchored at the worktree root. info/exclude remains outside version control
+# and is shared by linked worktrees that use the same Git common directory.
+local_path="path/to/local-file"
+exclude="$(git rev-parse --git-path info/exclude)"
+pattern="/$(git rev-parse --show-prefix)$local_path"
+grep -qxF "$pattern" "$exclude" || printf '%s\n' "$pattern" >> "$exclude"
+
+# show which exclude file, line, and pattern ignored the local file
+git check-ignore -v -- "$local_path"
