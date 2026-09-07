@@ -52,20 +52,30 @@ Copy `settings.json` to `~/.pi/agent/settings.json`.
 cp agents/pi/settings.json ~/.pi/agent/settings.json
 ```
 
-Three keys matter, and the schema is easy to get wrong:
+Three keys matter, and the two model fields do **not** use the same syntax:
 
-- `defaultProvider` -- provider id, separate field
-- `defaultModel` -- **bare** model id, no provider prefix. OpenRouter ids
-  contain a slash themselves (`z-ai/glm-5.3-flash`), which makes a combined
-  `provider/id` string look plausible; it is silently ignored and pi falls back
-  to its built-in default.
-- `enabledModels` -- patterns for `Ctrl+P` cycling. Not `scopedModels`, which
-  is the in-memory name and does nothing in this file.
+- `defaultProvider` + `defaultModel` -- provider id in one field, **bare** model
+  id in the other. No prefix on the model: `"defaultProvider": "openrouter"`
+  with `"defaultModel": "z-ai/glm-5.3-flash"`. Putting the provider in the model
+  string is silently ignored and pi falls back to its built-in default.
+- `enabledModels` -- patterns for `Ctrl+P` cycling, each parsed as
+  `provider/id`. Since an OpenRouter id already contains a slash, the pattern
+  needs the provider on top of it: `openrouter/z-ai/glm-5.3-flash`, not
+  `z-ai/glm-5.3-flash` (read as provider `z-ai`, which does not exist).
+  Globs work on the provider segment (`anthropic/*`) but not inside an id
+  (`openrouter/*glm*` matches nothing). Not `scopedModels` -- that is the
+  in-memory name and does nothing in this file.
 
-Both mistakes fail quietly, so confirm which model actually answered:
+A bare id with no slash resolves to the native provider, which is how
+`deepseek-v4-pro` routes to DeepSeek direct rather than OpenRouter's pricier
+`deepseek/deepseek-v4-pro`.
+
+Unmatched patterns warn on startup, but a bad default fails silently -- so
+confirm which model actually answered:
 
 ```shell
-pi -p --no-session -nt --mode json "hi" | grep -o '"provider":"[^"]*","model":"[^"]*"'
+pi -p --no-session -nt --offline "x" 2>&1 >/dev/null   # pattern warnings
+pi -p --no-session -nt --mode json "hi" | grep -ao '"provider":"[^"]*","model":"[^"]*"'
 ```
 
 ## Usage
