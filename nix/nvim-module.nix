@@ -46,7 +46,7 @@
     # Sync Neovim data (parsers, plugins, etc.)
     if [ -d "$HOME/.local/share/nvim" ]; then
       echo "Syncing Neovim data from $HOME/.local/share/nvim"
-      rsync -a "$HOME/.local/share/nvim/" "$XDG_DATA_HOME/nvim/"
+      rsync -a --force "$HOME/.local/share/nvim/" "$XDG_DATA_HOME/nvim/"
     fi
 
     # create a default lazygit config if it doesn't exist
