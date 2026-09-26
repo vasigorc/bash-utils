@@ -67,8 +67,9 @@ Three keys matter, and the two model fields do **not** use the same syntax:
   in-memory name and does nothing in this file.
 
 A bare id with no slash resolves to the native provider, which is how
-`deepseek-v4-pro` routes to DeepSeek direct rather than OpenRouter's pricier
-`deepseek/deepseek-v4-pro`.
+`deepseek-flash` routes to DeepSeek direct rather than OpenRouter's pricier
+`deepseek/deepseek-v4.1-flash`. The native ids do not mirror the display
+names: DeepSeek's "V4.1 Flash" is `deepseek-flash`, not `deepseek-v4.1-flash`.
 
 Unmatched patterns warn on startup, but a bad default fails silently -- so
 confirm which model actually answered:

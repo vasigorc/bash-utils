@@ -10,7 +10,7 @@
     "https://github.com/davebcn87/pi-autoresearch"
   ],
   "defaultProvider": "deepseek",
-  "defaultModel": "deepseek-v4-pro",
+  "defaultModel": "deepseek-flash",
   "defaultThinkingLevel": "high",
   "enabledModels": [
     "openrouter/thinkingmachines/inkling-small:free",
