@@ -1,0 +1,106 @@
+# herdr config — port of ../tmux/.tmux.conf (herdr 0.9.1)
+#
+# Install (copy, same as .tmux.conf):
+#   mkdir -p ~/.config/herdr && cp config.toml ~/.config/herdr/config.toml
+#   herdr config check            # invalid values silently fall back, so always check
+# Reload in a running server: prefix+r (below) or `herdr server reload-config`.
+#
+# tmux settings with no herdr equivalent (and why that's fine):
+#   escape-time 0, extended-keys csi-u, default-terminal, terminal-features RGB,
+#   focus-events  -> herdr owns the PTY (Ghostty VT); nvim negotiates the kitty
+#                    keyboard protocol directly, truecolor is always on.
+#   renumber-windows, base-index 1 -> tabs are listed, prefix+1..9 is 1-based.
+#   copy-mode-vi bindings -> herdr copy mode (prefix+[) keys are hard-coded vi keys;
+#                    see 1-HerdrTmuxMigration.md for gaps and the prefix+e escape hatch.
+# tmux plugins subsumed (tpm goes away):
+#   catppuccin -> [theme], resurrect/continuum -> persistent server + pane_history,
+#   tmux-yank -> built-in (pbcopy locally, OSC 52 over ssh),
+#   vim-tmux-navigator -> vim-herdr-navigation plugin ([[keys.command]] below).
+
+[theme]
+# No built-in macchiato ("catppuccin" is mocha); layer the macchiato palette on top.
+name = "catppuccin"
+
+[theme.custom]
+panel_bg = "reset"          # use WezTerm's own macchiato background
+sidebar_bg = "#1e2030"      # mantle
+active_row_bg = "#363a4f"   # surface0
+selection_bg = "#5b6078"    # surface2 (tmux used blue-on-base; keep text readable)
+surface_dim = "#363a4f"     # surface0
+text = "#cad3f5"
+accent = "#8aadf4"          # blue
+mauve = "#c6a0f6"
+green = "#a6da95"
+yellow = "#eed49f"
+red = "#ed8796"
+peach = "#f5a97f"
+
+[terminal]
+# split-window -c "#{pane_current_path}"
+new_cwd = "follow"
+# allow-passthrough on (image.nvim). herdr interprets kitty graphics itself.
+kitty_graphics = true
+
+[keys]
+prefix = "ctrl+b"
+
+# bind | split-window -h   /   bind - split-window -v
+split_vertical = "prefix+|"
+split_horizontal = "prefix+minus"
+
+# bind r source-file ~/.tmux.conf (herdr default prefix+r is resize mode; swapped)
+reload_config = "prefix+r"
+resize_mode = "prefix+shift+r"
+
+# bind -n M-<arrow> resize-pane (direct, no prefix). herdr has one step size,
+# so tmux's larger prefix+S-<arrow> steps map to resize mode instead.
+resize_pane_left = "alt+left"
+resize_pane_down = "alt+down"
+resize_pane_up = "alt+up"
+resize_pane_right = "alt+right"
+
+# tmux default prefix+; (last-pane). C-\ stays with nvim (vim-tmux-navigator).
+last_pane = "prefix+semicolon"
+
+# vim-tmux-navigator replacement. Plugin half linked from lazy.nvim's checkout:
+#   herdr plugin link ~/.local/share/nvim/lazy/vim-herdr-navigation
+# Editor half: ~/.config/nvim/lua/plugins/herdr-navigation.lua
+[[keys.command]]
+key = "ctrl+h"
+type = "plugin_action"
+command = "vim-herdr-navigation.left"
+description = "navigate left (vim/herdr)"
+
+[[keys.command]]
+key = "ctrl+j"
+type = "plugin_action"
+command = "vim-herdr-navigation.down"
+description = "navigate down (vim/herdr)"
+
+[[keys.command]]
+key = "ctrl+k"
+type = "plugin_action"
+command = "vim-herdr-navigation.up"
+description = "navigate up (vim/herdr)"
+
+[[keys.command]]
+key = "ctrl+l"
+type = "plugin_action"
+command = "vim-herdr-navigation.right"
+description = "navigate right (vim/herdr)"
+
+[ui]
+# set -g mouse on
+mouse_capture = true
+mouse_scroll_lines = 3
+# status-position top
+tab_bar_position = "top"
+
+[advanced]
+# history-limit 10000 (lines); herdr counts bytes. 10 MB is far more than 10k lines.
+scrollback_limit_bytes = 10000000
+
+[experimental]
+# tmux-resurrect/continuum parity: keep recent pane screen history across full
+# server restarts. Sessions already survive detach/client exit without this.
+pane_history = true

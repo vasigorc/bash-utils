@@ -8,6 +8,7 @@ For proper functioning of mentioned below items please install the following usi
 
 - tmux
 - font-jetbrains-mono-nerd-font
+- herdr and jq (optional, for the [herdr](#herdr) setup)
 
 ## Kitty
 
@@ -35,6 +36,15 @@ Structured cheat sheets for using tmux terminal multiplexer are given in [tmux f
 - [Plugins and Power Features](./tmux/4-PluginsAndPowerFeatures.md)
 
 This directory also contains custom [tmux.conf](./tmux/.tmux.conf) file.
+
+## herdr
+
+[herdr](https://herdr.dev) is an agent-aware terminal workspace manager that runs **alongside** tmux, with a
+separate binary and config dir. The setup and the tmux-to-herdr key map are in the [herdr folder](./herdr/):
+
+- [herdr as a tmux replacement](./herdr/1-HerdrTmuxMigration.md)
+- [config.toml](./herdr/config.toml): port of [.tmux.conf](./tmux/.tmux.conf). Copy it to `~/.config/herdr/config.toml`, then run `herdr config check`.
+- [image-test.md](./herdr/image-test.md): check that image.nvim renders inside herdr.
 
 ## WezTerm
 
