@@ -9,7 +9,14 @@ Neovim through CodeCompanion's ACP adapter (see `vasile-lazyvim-config`).
 ```shell
 npm i -g @earendil-works/pi-coding-agent   # the agent itself -> `pi`
 npm i -g pi-acp                            # ACP bridge for editors -> `pi-acp`
+npm i -g pnpm@10                           # settings.json sets npmCommand to pnpm
 ```
+
+`settings.json` installs `packages` with `pnpm`, so pi crashes on startup with
+`spawn pnpm ENOENT` if it is missing. Pin pnpm 10: newer releases turn
+dependency build scripts pnpm ignores (e.g. `koffi`, pulled in by the packages'
+dev dependencies) into a hard `ERR_PNPM_IGNORED_BUILDS` error, which aborts
+startup. pnpm 10 only warns.
 
 `pi-acp` only spawns whatever `pi` is on `PATH`; it does not bundle it. If node
 comes from nvm, editors launched outside a shell will not see either binary --
