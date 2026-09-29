@@ -104,6 +104,46 @@ Check it from a pane running Pi:
 tmux display -p -t <pane> 'alt=#{alternate_on} mouse=#{mouse_any_flag}'   # want alt=0 mouse=0
 ```
 
+### Excluding a package resource
+
+`packages` entries can be objects that filter what each package loads. Here
+`bash-guard` (from `pascal-de-ladurantaye/pi-agent`) is excluded:
+
+```json
+{
+  "source": "https://github.com/pascal-de-ladurantaye/pi-agent",
+  "extensions": ["-extensions/bash-guard/index.ts"]
+}
+```
+
+That extension reviews every non-whitelisted bash command with five parallel
+voters, and its voter and explainer models are hardcoded to
+`anthropic/claude-haiku-4-5` with no config knob. Like `pi auth check`, it only
+checks that the key is *present*, never that it answers, so a key without
+credits is still used on every command:
+
+```
+⚠️  Split vote (0 YES / 0 NO / 5 abstained) in 0.2s
+Unable to generate explanation.
+```
+
+Interactively that is a modal per command; in print mode there is no override,
+so the command is blocked outright. Excluding the resource is the fix.
+
+Two traps in the filter syntax. The force-exclude path is relative to the
+package root and must name the **file** -- `-extensions/bash-guard` matches
+nothing and loads the extension anyway. And filters resolve at session start,
+so a running session keeps its old resource set. `pi config` writes these same
+patterns from a TUI.
+
+Anything with a redirect, pipe or subshell skips the whitelist, so one of those
+shows whether the guard is really gone (`done` plus the file created) or still
+loaded (blocked as inconclusive):
+
+```shell
+pi -p --no-session -nt --tools bash "run exactly: printf x > /tmp/pi-guard-test"
+```
+
 ## Usage
 
 `Ctrl+L` or `/model` opens the full picker (`Ctrl+S` saves a new startup

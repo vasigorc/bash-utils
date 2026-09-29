@@ -3,7 +3,10 @@
     "pnpm"
   ],
   "packages": [
-    "https://github.com/pascal-de-ladurantaye/pi-agent",
+    {
+      "source": "https://github.com/pascal-de-ladurantaye/pi-agent",
+      "extensions": ["-extensions/bash-guard/index.ts"]
+    },
     "https://github.com/soleone/pi-tasks",
     "https://github.com/ghoseb/pi-irc-messenger",
     "npm:pi-messenger",
