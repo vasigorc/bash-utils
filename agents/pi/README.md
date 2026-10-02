@@ -86,6 +86,24 @@ pi -p --no-session -nt --offline "x" 2>&1 >/dev/null   # pattern warnings
 pi -p --no-session -nt --mode json "hi" | grep -ao '"provider":"[^"]*","model":"[^"]*"'
 ```
 
+### `tuiMode: "regular"` (keyboard copy in tmux / herdr)
+
+Pi 1.0.0 made `fullscreen` the default. Fullscreen draws on the alternate
+screen, so the transcript never reaches tmux or herdr history. Multiplexer copy
+mode (`prefix [`) then sees only the current screen. WezTerm copy mode
+(`Ctrl+Shift+X`) is not a workaround inside a multiplexer: it sees only the one
+screen tmux draws.
+
+`"tuiMode": "regular"` writes the transcript into normal scrollback. Restart
+Pi after the change (`pi -c` resumes the session); `/reload` does not switch
+the mode. Try it for one session with `pi --tui-mode regular`.
+
+Check it from a pane running Pi:
+
+```shell
+tmux display -p -t <pane> 'alt=#{alternate_on} mouse=#{mouse_any_flag}'   # want alt=0 mouse=0
+```
+
 ## Usage
 
 `Ctrl+L` or `/model` opens the full picker (`Ctrl+S` saves a new startup

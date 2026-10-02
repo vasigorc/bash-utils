@@ -30,5 +30,6 @@
   "autocompleteMaxVisible": 7,
   "terminal": {
     "showTerminalProgress": true
-  }
+  },
+  "tuiMode": "regular"
 }
