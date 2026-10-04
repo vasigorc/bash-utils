@@ -9,6 +9,10 @@ local act = wezterm.action
 
 local config = wezterm.config_builder()
 
+-- WezTerm 20240203 crashes on the Ubuntu 26.04 Wayland compositor
+-- (wl_surface buffer_scale protocol error); run via XWayland instead.
+config.enable_wayland = false
+
 -- -----------------------------------------------------------------------------
 -- Appearance: Kitty-inspired, but let WezTerm do the good font/rendering bits.
 -- -----------------------------------------------------------------------------
