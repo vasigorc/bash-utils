@@ -11,6 +11,11 @@ apt search nvidia | egrep -i driver | egrep -v "xserver|utils|modules|vaapi|extr
 sudo apt install nvidia-driver-570-server -y
 reboot
 
+# Stop Pop's repo from swapping the driver back on automatic updates:
+# blocks every *nvidia* package from o=system76-ubuntu-release
+sudo cp apt-preferences/system76-no-nvidia /etc/apt/preferences.d/
+apt-cache policy nvidia-driver-580 system76-driver-nvidia  # Pop versions should show -1
+
 # It may be worth starting NVIDIA's persistence daemon to prevent
 # CUDA from unloading when it's not being used
 sudo systemctl start nvidia-persistenced.service

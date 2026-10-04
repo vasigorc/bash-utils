@@ -1,0 +1,8 @@
+# Keep NVIDIA packages on Ubuntu's -server driver branch.
+# Pop's repo (o=system76-ubuntu-release) is pinned to 1001 and remaps most
+# nvidia-driver-* names to its own build, which breaks CUDA init on this
+# laptop. A named/glob pin outranks system76's "Package: *" pin.
+# Install: sudo cp system76-no-nvidia /etc/apt/preferences.d/
+Package: *nvidia*
+Pin: release o=system76-ubuntu-release
+Pin-Priority: -1
