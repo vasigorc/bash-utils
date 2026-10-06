@@ -27,6 +27,7 @@
     "openrouter/z-ai/glm-5.2",
     "openrouter/z-ai/glm-5.3",
     "openrouter/moonshotai/kimi-k3",
+    "openrouter/mistralai/mistral-large-4-0",
     "deepseek-flash",
     "deepseek-v4-pro"
   ],
