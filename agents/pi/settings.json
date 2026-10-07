@@ -28,6 +28,8 @@
     "openrouter/z-ai/glm-5.3",
     "openrouter/moonshotai/kimi-k3",
     "openrouter/mistralai/mistral-large-4-0",
+    "openrouter/xiaomi/mimo-v2.6-pro",
+    "openrouter/openai/gpt-6.1-sol",
     "deepseek-flash",
     "deepseek-v4-pro"
   ],
