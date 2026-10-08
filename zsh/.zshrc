@@ -3,6 +3,9 @@
 # this file assumes presence of zsh, oh-my-zsh, and sdkman
 # for zsh it assumes also that you've installed the following plugins: zsh-autosuggestions zsh-syntax-highlighting, zsh-nix-shell
 
+# User binaries: the herdr installer and agents/install.sh put files here.
+export PATH="$HOME/.local/bin:$PATH"
+
 # Path to your oh-my-zsh installation.
 export ZSH="$HOME/.oh-my-zsh"
 
@@ -31,6 +34,8 @@ alias vf='fd --type f --hidden --exclude .git | fzf-tmux -p | xargs nvim'
 # Add wisely, as too many plugins slow down shell startup.
 plugins=(git docker docker-compose gcloud kubectl kubectx mvn npm node rust sbt scala sdk terraform aws nix-shell zsh-autosuggestions zsh-syntax-highlighting)
 
+# oh-my-zsh also loads $ZSH_CUSTOM/*.zsh. agents/install.sh links herdr.zsh
+# (the hw function) there, so it needs no line in this file.
 source $ZSH/oh-my-zsh.sh
 
 # Make SDK available in the current shell
