@@ -23,8 +23,27 @@ It runs **next to** tmux: separate binary, separate config dir
 
 ## Install (alongside tmux)
 
+Install herdr with its own installer. It works on macOS and Linux, and it puts
+the binary in `~/.local/bin` (so that directory must be on `PATH`):
+
 ```sh
-brew install herdr jq                       # jq is needed by vim-herdr-navigation
+curl -fsSL https://herdr.dev/install.sh | sh
+```
+
+Other ways to install are on [herdr.dev/docs/install](https://herdr.dev/docs/install).
+Keep only one herdr on `PATH`: `which -a herdr` must show one line.
+
+`vim-herdr-navigation`, `hw`, and `agent-role` need `jq`:
+
+| OS | jq |
+| --- | --- |
+| macOS 15 or later | included (`/usr/bin/jq`) |
+| Ubuntu | `sudo apt install jq` |
+| Fedora | `sudo dnf install jq` |
+
+Then, from this folder, install the config:
+
+```sh
 mkdir -p ~/.config/herdr
 cp config.toml ~/.config/herdr/config.toml  # copy, same as .tmux.conf
 herdr config check                          # must print "config: ok"
@@ -140,7 +159,7 @@ herdr completely:
 ```sh
 herdr server stop
 herdr plugin unlink vim-herdr-navigation
-brew uninstall herdr && rm -rf ~/.config/herdr ~/.local/state/herdr
+rm "$(command -v herdr)" && rm -rf ~/.config/herdr ~/.local/state/herdr
 ```
 
 The Neovim side is inert outside herdr: without `$HERDR_PANE_ID`, the mappings

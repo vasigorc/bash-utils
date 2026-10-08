@@ -8,7 +8,7 @@ For proper functioning of mentioned below items please install the following usi
 
 - tmux
 - font-jetbrains-mono-nerd-font
-- herdr and jq (optional, for the [herdr](#herdr) setup)
+- herdr and jq (optional, for the [herdr](#herdr) setup). herdr has its own installer: see [Install](./herdr/1-HerdrTmuxMigration.md#install-alongside-tmux).
 
 ## Kitty
 
