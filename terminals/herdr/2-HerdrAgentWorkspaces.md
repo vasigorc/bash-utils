@@ -149,11 +149,25 @@ The orchestrator then also sees the new agent's name.
 | Stop role agents and close their panes | `agent-role --stop w4-dev w4-reviewer` |
 | List agents | `herdr agent list` |
 | Show one agent | `herdr agent get w4-dev` |
-| Give a task and wait | `herdr agent prompt w4-dev "<task>" --wait --timeout 300000` |
+| Give a task and wait | `agent-role --prompt w4-dev --wait --timeout 300000`, with the task on stdin (below) |
 | Wait again, while it works | `herdr agent wait w4-dev --timeout 300000` |
 | Read its output | `herdr agent read w4-dev --source recent-unwrapped --lines 200` |
+| Stop the command that it runs | `herdr agent send-keys w4-dev esc` |
+| Snapshot of the files | `agent-role --snapshot` (a git tree id; equal ids mean no file changed) |
 | Focus its pane | `herdr agent focus w4-dev` |
 | Close the workspace | `herdr workspace close w4` |
+
+Give the task in a quoted heredoc. The shell then changes nothing in it, so
+backticks and `$(...)` stay text:
+
+```sh
+agent-role --prompt w4-dev --wait --timeout 300000 <<'TASK'
+Fix the bug in `src/main.go`. Run the tests.
+TASK
+```
+
+In `herdr agent prompt w4-dev "<task>"`, the shell runs the backticks and the
+`$(...)` in the task before herdr gets it.
 
 ## Close an agent's pane
 
@@ -192,6 +206,9 @@ is in a turn. You can get the work back:
 | Claude: `agent_not_ready ... blocked during startup` | Claude Code shows the folder-trust dialog the first time in a directory. | Answer it in the pane. herdr then sees the agent. |
 | Status `blocked` | A permission prompt or a dialog waits for input. | Read the pane and answer. |
 | A wait runs to its timeout after the agent finished | The wait used `--until done`. herdr changes `done` to `idle` when someone looks at the pane. | Wait without `--until`: it ends at `idle`, `done`, or `blocked`. |
+| An agent works for a long time. Its pane shows one command, and the `Elapsed` time grows. | The command does not end, for example a server or a watch mode. The bash tool in Pi has no default timeout. | `herdr agent send-keys <name> esc` stops the command. The orchestrator asks you after 15 minutes. |
+| The orchestrator reports that reviewer, qa, or pm changed files | A check wrote a file that git does not ignore, or the agent edited a file. | Read `git diff --stat <before> <after>`. Restore the files or add the output to `.gitignore`. Then give the task again. |
+| A task arrived changed, or a command in it ran | The task was in double quotes. | Use `agent-role --prompt <name> <<'TASK'`. |
 | `invalid_agent_name` | Names must be lower case: `[a-z][a-z0-9_-]`, 32 characters or fewer. | Use `--name`. |
 | `agent ... exists` | An agent with that name runs already. | `agent-role --stop <name>`, or use `--name`. |
 | The side column looks wrong | The column is built for the `hw` layout: one pane at the top, one row below. | Close the side panes, then start the side agent again. |

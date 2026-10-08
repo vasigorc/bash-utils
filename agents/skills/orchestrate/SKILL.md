@@ -61,6 +61,17 @@ Permission checks cannot read variables, so the user must approve the command.
   implementation for dev. Dev writes the code.
 - **Check the claims.** Do not trust reported output alone. Reviewer re-runs
   the checks. For important claims, run one check yourself.
+- **Read-only roles change no files.** reviewer, qa, and pm must not change
+  files. Before you give one of them a task, run `agent-role --snapshot <dir>`,
+  where `<dir>` is the checkout of the agent, and keep the id. When the task
+  ends, run it again. If the two ids are different, the task failed, also if
+  the reply says `STATUS: done`. Do not use its findings. Run
+  `git diff --stat <before> <after>`, show the result to the user, and ask what
+  to do. Do not restore files yourself.
+  - During the task, do not let dev work in the same checkout.
+  - The check sees tracked and untracked files. It does not see ignored files
+    (for example build caches) or containers.
+  - If the checkout is not a git work tree, skip the check and tell the user.
 - **Approvals.** The user approves the plan before dev starts. Follow
   `AGENTS.md` for who commits and who pushes.
 - **Commit messages.** Suggest a commit message in your final report. Use the
@@ -78,11 +89,32 @@ Permission checks cannot read variables, so the user must approve the command.
 | Step | Command |
 |---|---|
 | Start | `agent-role <role>`, which prints `{"name", "pane", "model"}` |
-| Give a task and wait | `herdr agent prompt <name> "<task>" --wait --timeout 300000` |
+| Give a task and wait | `agent-role --prompt <name> --wait --timeout 300000`, with the task on stdin (see below) |
 | Wait again | `herdr agent wait <name> --timeout 300000` |
 | Read result | `herdr agent read <name> --source recent-unwrapped --lines 300` |
 | Status | `herdr agent get <name>`, `herdr agent list` |
+| Stop the command that runs | `herdr agent send-keys <name> esc` (ask the user first) |
+| Snapshot of the files | `agent-role --snapshot <dir>` |
 | Stop and close the panes | `agent-role --stop <name> [<name>...]` |
+
+### Give the task on stdin
+
+Always give a task to `agent-role --prompt` in a quoted heredoc:
+
+```text
+agent-role --prompt <name> --wait --timeout 300000 <<'TASK'
+<the task, on as many lines as you need>
+TASK
+```
+
+- Keep the quotes in `<<'TASK'`. Then the shell changes nothing in the task.
+- Do not put a line that is only `TASK` in the task.
+- Do not give a task with `herdr agent prompt <name> "<task>"`. In double
+  quotes, the shell runs the backticks and the `$(...)` in the task. In single
+  quotes, an apostrophe ends the quote. `"$(cat <<'EOF' ... EOF)"` is not safe
+  either: in `/bin/bash` 3.2 (macOS), a `)` in the task ends it.
+
+### Notes
 
 - Each reply ends with a `STATUS:` line. If the line is not in the output,
   read more lines.
@@ -97,17 +129,27 @@ Permission checks cannot read variables, so the user must approve the command.
 ## Waiting
 
 - **Default: wait in the foreground, in steps of 5 minutes or less.** Give the
-  task with `agent prompt --wait --timeout 300000`. If it times out, the agent
-  continues. Read the last lines of its pane, then run
-  `agent wait <name> --timeout 300000`. Do this again until the agent is done.
+  task with `agent-role --prompt <name> --wait --timeout 300000`. If it times
+  out, the agent continues. Read the last lines of its pane, then run
+  `agent wait <name> --timeout 300000`. Do this again until the agent is done,
+  but not past the limit below.
+- **Limit: 3 waits that time out (15 minutes) for each task.** Then stop
+  waiting. Read the pane, and tell the user what the agent does and for how
+  long, for example a command and its `Elapsed` time. Ask the user: wait more,
+  or stop the command. If the user says to wait more, the limit starts again.
+  To stop the command, run `herdr agent send-keys <name> esc`. The agent ends
+  its turn and keeps its context. Then you can give it a new task.
+- Do not compare two pane reads to find a hung agent. Pi changes the elapsed
+  time and the spinner on each read, also when nothing else moves.
 - If a wait ends with `blocked`, read the pane. The agent waits for input, for
   example a permission prompt. Ask the user before you answer it.
 - For parallel agents, give each task with
-  `agent prompt <name> "<task>" --wait --until working --timeout 30000`, so
-  that each agent has started. Then wait for each one in turn. The total time
-  is the time of the slowest agent.
+  `agent-role --prompt <name> --wait --until working --timeout 30000`, so that
+  each agent has started. Then wait for each one in turn. The total time is
+  the time of the slowest agent.
 - **Claude Code only:** to stay free for the user during a long task, run the
-  wait as a background job. Claude Code wakes you when the job ends.
+  wait as a background job. Claude Code wakes you when the job ends. The same
+  limit applies: a background wait of 15 minutes at most.
 - **Pi:** always wait in the foreground. Pi does not wake you when a
   background job ends.
 

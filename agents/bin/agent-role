@@ -1,21 +1,32 @@
 #!/usr/bin/env bash
-# agent-role: start or stop a Pi role agent in a herdr pane.
+# agent-role: start Pi role agents in herdr panes, give them tasks, and stop
+# them.
 #
 # Usage:
 #   agent-role ROLE [--name NAME] [--pane right|side|PANE_ID] [--cwd DIR] [--dry-run]
+#   agent-role --prompt NAME [OPTION...] <<'TASK'
 #   agent-role --stop NAME [NAME...]
+#   agent-role --snapshot [DIR]
 #
 # ROLE is a file in the roles directory (dev, reviewer, qa, pm).
 # --pane right    split right of the calling pane (default for dev)
 # --pane side     use the side column on the right of the tab (default for pm,
 #                 qa, reviewer). The first side agent makes the column.
 # --pane PANE_ID  use an existing pane that is at a shell prompt
+# Start prints JSON: {"name", "role", "pane", "model"}.
+#
+# --prompt NAME   read a task from stdin and give it to the agent with
+#                 `herdr agent prompt`. Each OPTION (for example --wait
+#                 --timeout 300000) goes to herdr. The task is not given to a
+#                 shell, so backticks and $(...) in it stay text.
 # --stop NAME...  stop each agent and close its pane. When the last side pane
 #                 closes, the side column goes away. An agent that is not
 #                 there (for example, its pane was closed by hand) is not an
 #                 error.
-#
-# Prints JSON: {"name", "role", "pane", "model"}.
+# --snapshot DIR  print a git tree id of the files in the work tree of DIR
+#                 (default: .): tracked and untracked files, not ignored
+#                 files. Equal ids mean that no file changed. The git index
+#                 does not change.
 #
 # Environment:
 #   AGENT_ROLES_CONFIG  machine config (default ~/.config/agent-roles/config.json)
@@ -48,6 +59,34 @@ stop_agent() {
   jq -nc --arg name "$name" --arg pane "$pane" '{stopped: $name, closed_pane: $pane}'
 }
 
+# Give the task on stdin to the agent. The task goes to herdr as one argument,
+# and no shell reads it.
+prompt_agent() { # name [herdr option...]
+  local name=$1 task
+  shift
+  [[ ! -t 0 ]] || die "give the task on stdin: agent-role --prompt $name <<'TASK'"
+  task=$(cat)
+  [[ -n ${task//[[:space:]]/} ]] || die "the task for $name is empty"
+  exec herdr agent prompt "$name" "$task" "$@"
+}
+
+# Print a git tree id of the work tree. git adds all files to a copy of the
+# index, so the real index and other git commands are not affected. The blobs
+# that git writes are removed later by git gc.
+snapshot() { # [dir]
+  local top index
+  top=$(git -C "${1:-.}" rev-parse --show-toplevel 2>/dev/null) ||
+    die "not a git work tree: ${1:-.}"
+  index=$(git -C "$top" rev-parse --git-path index)
+  [[ $index == /* ]] || index=$top/$index
+  tmp_index=$(mktemp "${TMPDIR:-/tmp}/agent-role-index.XXXXXX")
+  trap 'rm -f "$tmp_index"' EXIT
+  # git cannot read an empty index file. With no index, git makes a new one.
+  if [[ -f $index ]]; then cp "$index" "$tmp_index"; else rm -f "$tmp_index"; fi
+  GIT_INDEX_FILE=$tmp_index git -C "$top" add -A
+  GIT_INDEX_FILE=$tmp_index git -C "$top" write-tree
+}
+
 role="" name="" where="" cwd=$PWD dry=0
 while (($#)); do
   case $1 in
@@ -56,6 +95,14 @@ while (($#)); do
       [[ $# -ge 2 ]] || usage 1
       shift
       for n in "$@"; do stop_agent "$n"; done
+      exit ;;
+    --prompt)
+      [[ $# -ge 2 ]] || usage 1
+      shift
+      prompt_agent "$@" ;;
+    --snapshot)
+      [[ $# -le 2 ]] || usage 1
+      snapshot "${2:-.}"
       exit ;;
     --name) name=$2; shift 2 ;;
     --pane) where=$2; shift 2 ;;

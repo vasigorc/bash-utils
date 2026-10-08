@@ -11,7 +11,7 @@ agents are always Pi.
 | `roles/_base.md` | Rules that every role agent gets |
 | `roles/{dev,reviewer,qa,pm}.md` | One role each: frontmatter (`preset`, `tools`, `pane`) and a prompt |
 | `roles/config.example.json` | Example machine config: preset models, extensions, extra tools |
-| `bin/agent-role` | Starts or stops a role agent in a herdr pane |
+| `bin/agent-role` | Starts and stops role agents in herdr panes, gives them tasks on stdin, and takes snapshots of the work tree |
 | `install.sh` | Links the tools into your home directory |
 | `test/scratch-repo.sh` | Makes a tiny repo to test the setup |
 | `pi/settings.json` | Portable Pi settings (see `pi/README.md`) |

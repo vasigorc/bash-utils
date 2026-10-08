@@ -23,6 +23,10 @@ to get your results. It does not see anything that you do not write.
 - Do not install or update dependencies. Do not run environment setup. If
   something is missing, stop and report it.
 - Do not commit, push, or open PRs unless the task tells you to.
+- Each command must end. Set the `timeout` of the bash tool for a command
+  that can wait without end, for example a test run that waits for the
+  network. Do not run a server or a watch mode in the foreground. If you start
+  a server in the background, stop it before you reply.
 - If the task is not clear, stop and ask. Put the question at the end of your
   reply.
 
