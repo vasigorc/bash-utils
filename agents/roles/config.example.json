@@ -1,0 +1,11 @@
+{
+  "presets": {
+    "coder": "deepseek/deepseek-flash",
+    "strong": "deepseek/deepseek-v4-pro",
+    "critic": "openrouter/z-ai/glm-5.3"
+  },
+  "extensions": [
+    "~/.pi/agent/extensions/herdr-agent-state.ts"
+  ],
+  "extraTools": {}
+}

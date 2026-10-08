@@ -1,0 +1,187 @@
+#!/usr/bin/env bash
+# agent-role: start or stop a Pi role agent in a herdr pane.
+#
+# Usage:
+#   agent-role ROLE [--name NAME] [--pane right|side|PANE_ID] [--cwd DIR] [--dry-run]
+#   agent-role --stop NAME [NAME...]
+#
+# ROLE is a file in the roles directory (dev, reviewer, qa, pm).
+# --pane right    split right of the calling pane (default for dev)
+# --pane side     use the side column on the right of the tab (default for pm,
+#                 qa, reviewer). The first side agent makes the column.
+# --pane PANE_ID  use an existing pane that is at a shell prompt
+# --stop NAME...  stop each agent and close its pane. When the last side pane
+#                 closes, the side column goes away. An agent that is not
+#                 there (for example, its pane was closed by hand) is not an
+#                 error.
+#
+# Prints JSON: {"name", "role", "pane", "model"}.
+#
+# Environment:
+#   AGENT_ROLES_CONFIG  machine config (default ~/.config/agent-roles/config.json)
+#   AGENT_ROLES_DIR     role files (default: ../roles next to this script)
+set -euo pipefail
+
+here=$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)
+roles_dir=${AGENT_ROLES_DIR:-$here/../roles}
+config=${AGENT_ROLES_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/agent-roles/config.json}
+cache=${XDG_CACHE_HOME:-$HOME/.cache}/agent-roles
+
+die() { echo "agent-role: $*" >&2; exit 1; }
+usage() { sed -n '2,/^set -euo/{/^set -euo/d;s/^# \{0,1\}//;p;}' "${BASH_SOURCE[0]}"; exit "${1:-0}"; }
+
+command -v herdr >/dev/null || die "herdr not found"
+command -v jq >/dev/null || die "jq not found"
+
+# Prints {"stopped", "closed_pane"}, or {"stopped", "note"} if the agent is
+# not there. Any other herdr error stops the script.
+stop_agent() {
+  local name=$1 out pane
+  if ! out=$(herdr agent get "$name" 2>&1); then
+    [[ $(jq -r '.error.code? // empty' <<<"$out" 2>/dev/null) == agent_not_found ]] ||
+      die "cannot stop $name: $out"
+    jq -nc --arg name "$name" '{stopped: $name, note: "no such agent, nothing to stop"}'
+    return 0
+  fi
+  pane=$(jq -er '.result.agent.pane_id' <<<"$out") || die "no pane for agent: $name"
+  herdr pane close "$pane" >/dev/null
+  jq -nc --arg name "$name" --arg pane "$pane" '{stopped: $name, closed_pane: $pane}'
+}
+
+role="" name="" where="" cwd=$PWD dry=0
+while (($#)); do
+  case $1 in
+    -h | --help) usage ;;
+    --stop)
+      [[ $# -ge 2 ]] || usage 1
+      shift
+      for n in "$@"; do stop_agent "$n"; done
+      exit ;;
+    --name) name=$2; shift 2 ;;
+    --pane) where=$2; shift 2 ;;
+    --cwd) cwd=$2; shift 2 ;;
+    --dry-run) dry=1; shift ;;
+    -*) die "unknown option: $1" ;;
+    *) [[ -z $role ]] || die "give one role only"; role=$1; shift ;;
+  esac
+done
+[[ -n $role ]] || usage 1
+
+file=$roles_dir/$role.md
+[[ -f $file ]] || die "no role file: $file"
+[[ -f $config ]] || die "no config: $config (run agents/install.sh)"
+
+# Frontmatter value for key $1, or empty.
+fm() { awk -v k="$1" 'NR==1 && /^---$/ {f=1; next} f && /^---$/ {exit}
+  f && index($0, k ":") == 1 {sub("^" k ":[ \t]*", ""); print; exit}' "$file"; }
+# Role body without frontmatter.
+body() { awk 'NR==1 && /^---$/ {f=1; next} f==1 && /^---$/ {f=2; next} f!=1' "$file"; }
+
+preset=$(fm preset)
+[[ -n $preset ]] || die "$role.md has no preset"
+model=$(jq -er --arg p "$preset" '.presets[$p] // empty' "$config") ||
+  die "preset '$preset' is not in $config"
+tools=$(fm tools | tr -d ' ')
+extra=$(jq -r --arg r "$role" '(.extraTools[$r] // []) | join(",")' "$config")
+[[ -n $extra ]] && tools=${tools:+$tools,}$extra
+where=${where:-$(fm pane)}
+where=${where:-right}
+
+exts=()
+while IFS= read -r e; do
+  [[ -n $e ]] && exts+=(-e "${e/#\~/$HOME}")
+done < <(jq -r '(.extensions // [])[]' "$config")
+
+# One prompt file: base rules, then the role. The writing style applies only
+# to the orchestrator (see hw), so it is not in role prompts.
+mkdir -p "$cache"
+prompt=$cache/$role.md
+{
+  [[ -f $roles_dir/_base.md ]] && { cat "$roles_dir/_base.md"; echo; }
+  body
+} >"$prompt"
+
+# -ne: no discovered extensions. Only the extensions in the config load, so
+# memory, chat, and UI extensions do not run in role agents.
+args=(-ne ${exts[@]+"${exts[@]}"} --model "$model" --append-system-prompt "$prompt")
+[[ -n $tools ]] && args+=(--tools "$tools")
+
+self=${HERDR_PANE_ID:-}
+tab=${HERDR_TAB_ID:-}
+ws=${HERDR_WORKSPACE_ID:-}
+# Agent names must be lowercase; workspace ids can be "wA".
+name=${name:-$(printf "%s" "${ws:-w}" | tr "[:upper:]" "[:lower:]")-$role}
+
+if ((dry)); then
+  printf '%q ' herdr agent start "$name" --kind pi --pane "<$where>" -- "${args[@]}"
+  echo
+  exit
+fi
+
+[[ ${HERDR_ENV:-} == 1 && -n $self && -n $tab ]] || die "run this inside a herdr pane"
+if herdr agent get "$name" >/dev/null 2>&1; then
+  die "agent $name exists; use --name, or run: agent-role --stop $name"
+fi
+
+split() { # pane direction [ratio]
+  herdr pane split "$1" --direction "$2" ${3:+--ratio "$3"} --cwd "$cwd" --no-focus |
+    jq -er '.result.pane.pane_id'
+}
+
+side_panes() {
+  herdr pane list --workspace "${tab%%:*}" |
+    jq -c --arg t "$tab" '[.result.panes[] | select(.tab_id == $t and .label == "side")]'
+}
+
+# Move a pane next to a target pane in this tab. herdr moves panes only between
+# tabs, so the pane goes through a temporary tab. herdr closes that tab.
+move_next_to() { # pane target direction
+  herdr pane move "$1" --new-tab --no-focus >/dev/null
+  herdr pane move "$1" --tab "$tab" --target-pane "$2" --split "$3" --no-focus >/dev/null
+}
+
+# Make a full-height side column on the right of the tab, and print its pane.
+# herdr splits panes, not tabs. So split the top-left pane to the right, then
+# move the panes of the lower row under the top-left pane, left to right.
+# This fits the hw layout. When the last side pane closes, the layout returns
+# to its first shape.
+new_side_column() {
+  local layout anchor side prev dir p
+  layout=$(herdr pane layout --pane "$self")
+  anchor=$(jq -r '.result.layout.panes[] | select(.rect.x == 0 and .rect.y == 0) | .pane_id' <<<"$layout")
+  side=$(split "$anchor" right 0.6)
+  prev=$anchor dir=down
+  for p in $(jq -r '[.result.layout.panes[] | select(.rect.y > 0)] | sort_by(.rect.y, .rect.x) | .[].pane_id' <<<"$layout"); do
+    move_next_to "$p" "$prev" "$dir"
+    prev=$p dir=right
+  done
+  echo "$side"
+}
+
+case $where in
+  right) pane=$(split "$self" right) ;;
+  side)
+    sides=$(side_panes)
+    # Reuse a side pane whose agent has exited.
+    pane=$(jq -r 'map(select(.agent == null)) | .[0].pane_id // empty' <<<"$sides")
+    if [[ -z $pane ]]; then
+      last=$(jq -r '.[-1].pane_id // empty' <<<"$sides")
+      if [[ -n $last ]]; then pane=$(split "$last" down); else pane=$(new_side_column); fi
+      herdr pane rename "$pane" side >/dev/null
+    fi
+    ;;
+  *) pane=$where ;;
+esac
+
+# A new pane needs a moment before its shell is ready. Retry while herdr
+# reports the pane as busy.
+for _ in {1..30}; do
+  if out=$(herdr agent start "$name" --kind pi --pane "$pane" --timeout 60000 -- "${args[@]}" 2>&1); then
+    break
+  fi
+  [[ $out == *agent_pane_busy* ]] || die "agent start failed in pane $pane: $out"
+  sleep 0.5
+done
+[[ $out != *'"error"'* ]] || die "agent start failed in pane $pane: $out"
+jq -n --arg name "$name" --arg role "$role" --arg pane "$pane" --arg model "$model" \
+  '{name: $name, role: $role, pane: $pane, model: $model}'

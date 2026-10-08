@@ -43,6 +43,7 @@ This directory also contains custom [tmux.conf](./tmux/.tmux.conf) file.
 separate binary and config dir. The setup and the tmux-to-herdr key map are in the [herdr folder](./herdr/):
 
 - [herdr as a tmux replacement](./herdr/1-HerdrTmuxMigration.md)
+- [herdr agent workspaces](./herdr/2-HerdrAgentWorkspaces.md): `hw`, role agents, and how to test them.
 - [config.toml](./herdr/config.toml): port of [.tmux.conf](./tmux/.tmux.conf). Copy it to `~/.config/herdr/config.toml`, then run `herdr config check`.
 - [image-test.md](./herdr/image-test.md): check that image.nvim renders inside herdr.
 
