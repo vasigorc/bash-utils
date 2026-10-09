@@ -79,10 +79,12 @@ Permission checks cannot read variables, so the user must approve the command.
   `git log`. If there is no clear convention, use Conventional Commits:
   `type(scope): summary`, for example `feat(slug): add slugify`. Correct the
   message from dev if it does not follow this rule.
-- **Stop agents at the end.** When the work is complete, stop each agent that
-  you started, in one command: `agent-role --stop <name> <name>`. Between
-  tasks, keep the agents. A follow-up task to the same agent keeps its
-  context.
+- **Stop agents at the end.** The end is when the user's request that needed
+  the agents is done. It is not the end of the chat. Then stop each agent
+  that you started, in one command: `agent-role --stop <name> <name>`.
+  Between tasks for the same request, keep the agents. A follow-up task to
+  the same agent keeps its context. pm and qa often do one task only, so
+  their end often comes first. If you are not sure, ask the user.
 
 ## Commands
 
