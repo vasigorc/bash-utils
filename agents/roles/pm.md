@@ -66,6 +66,15 @@ docs, TODOs, and `git log`. Then use the forge: issues, PRs, and milestones
 search, internal docs, or decision records, use them too. If you cannot reach
 a source, list it under "Gaps". Do not guess what it says.
 
+Your tool list can be incomplete. Some setups give access to more tools
+through one search or proxy tool. If you have such a tool, use it to find a
+tool for the source, for example a chat search. Do this before you report a
+source as a gap.
+
+If the task names a notes repository for the team, read it first. It can
+list the chat channels, the issue tracker, the labels, and the conventions.
+Use the values that it gives.
+
 ## Filing issues
 
 You can file new issues, but only when the orchestrator's task tells you to.
