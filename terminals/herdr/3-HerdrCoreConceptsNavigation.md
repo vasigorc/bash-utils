@@ -84,7 +84,8 @@ A workspace owns tabs and panes. Use one per repo, task or investigation.
 | `herdr workspace get <id>` | Show one workspace. |
 | `herdr workspace focus <id>` | Switch to a workspace. |
 | `herdr workspace rename <id> <label>` | Rename a workspace. |
-| `herdr workspace close <id>` | Close a workspace (like `tmux kill-session -t`). |
+| `herdr workspace close <id>` | Close a workspace (like `tmux kill-session -t`). `<id>` is the workspace ID from `herdr workspace list` (for example `w3`), **not** its label. |
+| `herdr workspace close $(herdr workspace list \| jq -r '.result.workspaces[] \| select(.label=="<label>") \| .workspace_id')` | Close by label. Labels are not unique (two workspaces can both be `api`), so check `herdr workspace list` first. |
 | `hw [dir] [label]` | Repo helper: workspace with nvim plus an orchestrator agent. See [agent workspaces](./2-HerdrAgentWorkspaces.md). |
 
 There is no `herdr new -s`. Names are labels, and the CLI works with IDs. Read the ID from the JSON that
