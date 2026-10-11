@@ -163,7 +163,7 @@ Versions of the packaged software packages depend on the underlying "pinned" Nix
 Feel free to use [NIXOS_VERSION](NIXOS_VERSION) file to update to the desired (intended latest) stable version. To do so, just update this line in the mentioned file:
 
 ```shell
-NIXOS_VERSION="24.11"  # Can be changed when new stable versions come out
+NIXOS_VERSION="26.05"  # Can be changed when new stable versions come out
 ```
 
 and run the [update-nix-pins.sh](./update-nix-pins.sh) script. Below is the approximate expected output:
@@ -176,29 +176,29 @@ Found: ./combined.nix
 Found: ./default.nix
 Found: ./compiled.nix
 Found: ./js.nix
-Do you want to update these files to use nixos-24.11 (commit: e24b4c09e963677b1beea49d411cd315a024ad3a)? (y/n) y
+Do you want to update these files to use nixos-26.05 (commit: 7c8764b7c7b09b34f632464276218ef9090eaa11)? (y/n) y
 Updating ./combined.nix...
 Updating ./default.nix...
 Updating ./compiled.nix...
 Updating ./js.nix...
-Updated Nix files to use commit e24b4c09e963677b1beea49d411cd315a024ad3a
+Updated Nix files to use commit 7c8764b7c7b09b34f632464276218ef9090eaa11
 
 Verifying changes:
 
 ./combined.nix contains:
-{ pkgs ? import (fetchTarball "https://github.com/NixOS/nixpkgs/archive/e24b4c09e963677b1beea49d411cd315a024ad3a.tar.gz") {} }:
+{ pkgs ? import (fetchTarball "https://github.com/NixOS/nixpkgs/archive/7c8764b7c7b09b34f632464276218ef9090eaa11.tar.gz") {} }:
 
 
 ./default.nix contains:
-{ pkgs ? import (fetchTarball "https://github.com/NixOS/nixpkgs/archive/e24b4c09e963677b1beea49d411cd315a024ad3a.tar.gz") {} }:
+{ pkgs ? import (fetchTarball "https://github.com/NixOS/nixpkgs/archive/7c8764b7c7b09b34f632464276218ef9090eaa11.tar.gz") {} }:
 
 
 ./compiled.nix contains:
-{ pkgs ? import (fetchTarball "https://github.com/NixOS/nixpkgs/archive/e24b4c09e963677b1beea49d411cd315a024ad3a.tar.gz") {} }:
+{ pkgs ? import (fetchTarball "https://github.com/NixOS/nixpkgs/archive/7c8764b7c7b09b34f632464276218ef9090eaa11.tar.gz") {} }:
 
 
 ./js.nix contains:
-{ pkgs ? import (fetchTarball "https://github.com/NixOS/nixpkgs/archive/e24b4c09e963677b1beea49d411cd315a024ad3a.tar.gz") {} }:
+{ pkgs ? import (fetchTarball "https://github.com/NixOS/nixpkgs/archive/7c8764b7c7b09b34f632464276218ef9090eaa11.tar.gz") {} }:
 ```
 
 ## Running all modules together

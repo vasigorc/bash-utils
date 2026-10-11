@@ -1,7 +1,7 @@
 {
   pkgs ?
     import
-      (fetchTarball "https://github.com/NixOS/nixpkgs/archive/a493e93b4a259cd9fea8073f89a7ed9b1c5a1da2.tar.gz")
+      (fetchTarball "https://github.com/NixOS/nixpkgs/archive/7c8764b7c7b09b34f632464276218ef9090eaa11.tar.gz")
       {
         config.allowUnfree = true;
       },
