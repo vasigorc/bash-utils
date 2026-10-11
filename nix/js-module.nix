@@ -4,15 +4,15 @@
   buildInputs = with pkgs; [
     # Node.js and basic tools
     nodejs
-    nodePackages.yo
+    yo
 
     # Typescript
-    nodePackages.typescript
-    nodePackages.typescript-language-server
-    nodePackages.ts-node # For direct TS execution
+    typescript
+    typescript-language-server
+    tsx # For direct TS execution (replaces ts-node, removed in nixpkgs 26.05)
 
-    nodePackages.eslint
-    nodePackages.prettier
+    eslint
+    prettier
 
     # Deno
     deno
@@ -20,11 +20,11 @@
 
   shellHook = ''
     # You can add any Node.js-specific environment setup here
-    export NODE_PATH="$NODE_PATH:${pkgs.nodePackages.prettier}/lib/node_modules"
-    export NODE_PATH="$NODE_PATH:${pkgs.nodePackages.eslint}/lib/node_modules"
+    export NODE_PATH="$NODE_PATH:${pkgs.prettier}/lib/node_modules"
+    export NODE_PATH="$NODE_PATH:${pkgs.eslint}/lib/node_modules"
 
     # TypeScript paths
-    export NODE_PATH="$NODE_PATH:${pkgs.nodePackages.typescript}/lib/node_modules"
+    export NODE_PATH="$NODE_PATH:${pkgs.typescript}/lib/node_modules"
 
     # Ensure deno cache directory exists
     export DENO_DIR="$HOME/.cache/deno"
