@@ -6,9 +6,9 @@
     neovim
     nodejs
     # Language servers
-    nodePackages.typescript-language-server
-    nodePackages.vscode-langservers-extracted
-    nodePackages."@tailwindcss/language-server"
+    typescript-language-server
+    vscode-langservers-extracted
+    tailwindcss-language-server
     lua-language-server
     # Required tools
     fzf
