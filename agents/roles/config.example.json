@@ -1,7 +1,7 @@
 {
   "presets": {
     "coder": "deepseek/deepseek-flash",
-    "strong": "deepseek/deepseek-v4-pro",
+    "strong": "openrouter/moonshotai/kimi-k3",
     "critic": "openrouter/z-ai/glm-5.3"
   },
   "extensions": [
