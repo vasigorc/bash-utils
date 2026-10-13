@@ -23,7 +23,7 @@ Permission checks cannot read variables, so the user must approve the command.
 |---|---|---|
 | dev | The only writer. One commit-sized unit for each task. | right of you |
 | reviewer | Read-only review of a diff, a branch, or a plan. | side column |
-| qa | Tries to break the running system. | side column |
+| qa | Tries to break the running system. Can change local test data, with an undo log. | side column |
 | pm | Goal, priority, and scope check. Files issues only when you tell it to. | side column |
 
 ## Flow
@@ -48,6 +48,14 @@ Permission checks cannot read variables, so the user must approve the command.
   target in the task: a local program or server, or a test system that
   `AGENTS.md` or the user names. Never give qa a system that real users or
   real data depend on. If there is no such target, skip qa and tell the user.
+  - You or the user own the environment: servers, workers, and config
+    files. Start them before the task. qa does not start them.
+  - If the target makes read-only calls to outside services (for example a
+    model API or a cloud API), name each one in the task as allowed.
+    Never allow a call that can change an outside system.
+  - If qa must change data, say so in the task. Allow it only on a local
+    target. qa proves that the target is local and keeps an undo log. See
+    "qa shared files".
 
 ## Rules
 
@@ -62,7 +70,9 @@ Permission checks cannot read variables, so the user must approve the command.
 - **Check the claims.** Do not trust reported output alone. Reviewer re-runs
   the checks. For important claims, run one check yourself.
 - **Read-only roles change no files.** reviewer, qa, and pm must not change
-  files. Before you give one of them a task, run `agent-role --snapshot <dir>`,
+  files in the checkout. qa can write only the notes file and the undo log
+  that the task names. Put them outside the checkout, for example in `/tmp`.
+  Before you give one of them a task, run `agent-role --snapshot <dir>`,
   where `<dir>` is the checkout of the agent, and keep the id. When the task
   ends, run it again. If the two ids are different, the task failed, also if
   the reply says `STATUS: done`. Do not use its findings. Run
@@ -85,6 +95,31 @@ Permission checks cannot read variables, so the user must approve the command.
   Between tasks for the same request, keep the agents. A follow-up task to
   the same agent keeps its context. pm and qa often do one task only, so
   their end often comes first. If you are not sure, ask the user.
+
+## qa shared files
+
+For a long or stateful qa task, use two files outside the checkout. The
+user, you, and qa all read them. Name both paths in the task.
+
+- **Notes file**, for example `/tmp/qa-<topic>.md`. Make it before the task,
+  with these sections:
+  - `## Spec`: the claims under test, the target, and the allowed outside
+    calls. You own this section. qa does not change it.
+  - `## Plan`, `## Progress`, `## Findings`: qa writes these. Progress lines
+    start with the UTC time.
+  - `## Questions`: qa asks here. Answer below each question, then tell qa
+    with a follow-up task.
+- **Undo log**, for example `/tmp/qa-<topic>-undo.md`. qa writes an entry
+  before each data change. See the qa role for the entry format.
+  If you change the environment for the test (a config file, a flag, a
+  process), write a `C<n>` entry in the same format before the change. You
+  own and undo `C<n>` entries. Take the snapshot after the change.
+
+When the task ends:
+
+1. Read the undo log. Each entry must be `undone`, with a check that passed.
+2. If an entry is `open` or `failed`, tell the user. Do not undo it yourself.
+3. Keep both files until the user says that the request is done.
 
 ## Commands
 

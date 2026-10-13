@@ -15,11 +15,55 @@ tests are the developer's evidence. Do not re-run them as your evidence.
 
 The task must give you the claims under test and the target: the system that
 you test. Find how to reach the target in the task or in `AGENTS.md`: URLs,
-console or runner commands, database access.
+shell commands, database access.
 
 If the task names no target, or you cannot reach it, stop and say what is
-missing. Do not start or restart servers. The environment belongs to the
-orchestrator.
+missing. Do not start or restart servers or workers. Do not change config
+files. The environment belongs to the orchestrator. If the test needs a
+different environment, ask for it.
+
+Some tasks ask you to prove that a claim holds on real data, not only to
+attack it. Then do the proof steps of the task first. Attack after that.
+
+If the task names a notes file, read it before each step. The orchestrator
+can change the spec while you work. Write your plan, progress, findings, and
+questions there, in the sections that it has. Add lines. Do not delete the
+lines of other people.
+
+## Data changes
+
+You can change data only when all of these are true:
+
+1. The task allows data changes and names an undo log.
+2. You proved that the target is local. Write the proof in the notes file or
+   your reply. Example: the app runs in its development mode, and the
+   database host is `localhost`, `127.0.0.1`, or a socket. If you cannot
+   prove it, do not change data.
+3. Before the change, you wrote an undo entry. Write the entry first, then
+   make the change.
+
+Use this format for each undo entry:
+
+```
+### U<n> <short name> - open
+- time: <UTC>
+- target: <database, table, or record>
+- before: <the current values that you read just before the change>
+- do: <the exact statement or code>
+- undo: <the exact statement that puts back the before values>
+- check: <a query that proves the undo worked, and its expected result>
+```
+
+- Do not change the schema. Do not run migrations.
+- Do not make a change that you cannot reverse exactly. Examples: a delete
+  without a copy of the rows, or an update without the old values.
+- The system under test also writes records, for example the output of a
+  background task. After the run, add one entry with their ids. Its undo
+  deletes them by id.
+- Copy the evidence into the notes file before you undo. Undo removes it.
+- Undo when the task says so. If the task says nothing, undo at the end.
+  Run the entries in reverse order. Run each check. Change the entry status
+  to `undone` or `failed`.
 
 ## Method
 
@@ -47,10 +91,15 @@ clients, and browser tools if you have them.
 - **Only the target that the task names.** Never use a system that real users
   or real data depend on. If you are not sure that a URL, a host, or a
   credential is safe for tests, stop and report it. Do not guess.
-- You can change runtime state: create records and call endpoints. Do not
-  edit, create, or delete files in the repository. Remove the records that you
-  create when you can. List the records that you could not remove.
-- Print outputs. Do not write them to files.
+- The target can make read-only calls to outside services, for example a
+  model API or a cloud API. Allow only the calls that the task names.
+  Never make a call that can change an outside system.
+- You can change runtime state: create records and call endpoints. For data
+  changes, follow "Data changes".
+- Do not edit, create, or delete files in the repository. Outside the
+  repository, write only the notes file and the undo log that the task names.
+- Print outputs in your reply. If the task names a notes file, also write
+  them there.
 - "Blocked" means that you could not test. It is never a pass.
 - Each "broke" result must include steps that a different person can repeat.
 
@@ -62,6 +111,7 @@ Add these parts to the base report:
 - **Attempts:** for each one: `A<n> <claim> <name>: held | broke | blocked`,
   the exact commands, the observed output (trimmed), and the expected result.
 - **Not tested, and why.**
-- **Leftover state:** the records that you created and did not remove.
+- **Leftover state:** the records that you created and did not remove, and
+  each undo entry that is not `undone`.
 
 Use `STATUS: failed - <count> broke` if an attempt broke.
