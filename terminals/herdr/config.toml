@@ -62,6 +62,12 @@ resize_pane_right = "alt+right"
 # tmux default prefix+; (last-pane). C-\ stays with nvim (vim-tmux-navigator).
 last_pane = "prefix+semicolon"
 
+# Cycle agents in the sidebar agent panel (all workspaces). Unset by default.
+# , and . are the < and > keys. tmux uses them for rename/move window; herdr
+# renames tabs with prefix+shift+t, so there is no clash.
+previous_agent = "prefix+comma"
+next_agent = "prefix+period"
+
 # vim-tmux-navigator replacement. Plugin half linked from lazy.nvim's checkout:
 #   herdr plugin link ~/.local/share/nvim/lazy/vim-herdr-navigation
 # Editor half: ~/.config/nvim/lua/plugins/herdr-navigation.lua

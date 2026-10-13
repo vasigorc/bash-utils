@@ -247,6 +247,7 @@ Mouse drag-select copies without entering copy mode. Full detail:
 | Key / command | Description |
 | --- | --- |
 | `Ctrl+b b` | Toggle the agent sidebar |
+| `Ctrl+b ,` / `Ctrl+b .` | Previous / next agent in the sidebar agent list, across workspaces **(config)**. Not bound by default. (tmux uses these keys for rename/move window.) |
 | `Ctrl+b g` | Pane navigator across all workspaces and tabs, in one list |
 | `Ctrl+b e` | Edit scrollback in your editor |
 | `Ctrl+b o` | Open the target of the last notification |
