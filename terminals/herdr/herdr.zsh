@@ -1,11 +1,15 @@
 # herdr helpers for zsh. This file is safe to load on a machine without herdr:
-# hw checks for herdr when you run it.
+# hw and ht check for herdr when you run them.
 
 # The agents directory of this repo, found from this file's real location.
 typeset -g _HW_AGENTS=${${(%):-%x}:A:h:h:h}/agents
 
 # hw [-o pi|claude] [-m MODEL] [dir] [label]: make a herdr workspace for
 # agent work.
+# ht [-o pi|claude] [-m MODEL] [dir] [label]: make a tab in the current herdr
+# workspace for agent work. Run it inside herdr.
+#
+# Both make the same layout:
 #
 #   +----------------+          +----------------+------+
 #   | nvim           |          | nvim           | side |
@@ -19,17 +23,32 @@ typeset -g _HW_AGENTS=${${(%):-%x}:A:h:h:h}/agents
 # An option wins over its environment variable, which wins over the default:
 #   -o, --orchestrator  HW_ORCHESTRATOR  default: pi    (pi or claude)
 #   -m, --model         HW_MODEL         default: the orchestrator's own
-hw() {
+hw() { _herdr_agent_layout hw "$@" }
+ht() { _herdr_agent_layout ht "$@" }
+
+# The agent name prefix for a tab: its id in lower case, with ":" as "-".
+# Agent names allow only letters, digits, "_" and "-". Example: wT:t2 -> wt-t2.
+_herdr_agent_prefix() { print -r -- ${(L)1//:/-} }
+
+_herdr_agent_layout() {
   emulate -L zsh
+  local cmd=$1 what
+  shift
+  case $cmd in
+    hw) what="a herdr workspace" ;;
+    ht) what="a tab in the current herdr workspace" ;;
+  esac
   local -a o_orch o_model o_help
   zparseopts -D -E -F -- o:=o_orch -orchestrator:=o_orch m:=o_model -model:=o_model \
     h=o_help -help=o_help || return 1
   if (( $#o_help )); then
     cat <<EOF
-usage: hw [-o pi|claude] [-m MODEL] [dir] [label]
+usage: $cmd [-o pi|claude] [-m MODEL] [dir] [label]
 
-Make a herdr workspace for agent work: nvim at the top, the orchestrator
-below it. Role agents open with agent-role.
+Make $what for agent work: nvim at the top, the
+orchestrator below it. Role agents open with agent-role.
+hw makes a new workspace. ht makes a new tab in the current workspace, and
+works only inside herdr.
 
   -o, --orchestrator  pi or claude.
                       Default: \$HW_ORCHESTRATOR (now: ${HW_ORCHESTRATOR:-not set}), else pi.
@@ -41,15 +60,15 @@ below it. Role agents open with agent-role.
                               openrouter/z-ai/glm-5.3:high. List: pi --list-models
                       claude: an alias or a model id, with no provider.
                               Examples: sonnet, opus, claude-sonnet-5-5.
-  dir                 The workspace directory. Default: the current directory.
-  label               The workspace label. Default: the directory name.
+  dir                 The working directory. Default: the current directory.
+  label               The label. Default: the directory name.
   -h, --help          Show this help.
 
 Examples:
-  hw
-  hw ~/src/my-project my-project
-  hw -o claude -m sonnet
-  hw -m anthropic/claude-sonnet-5-5:high
+  $cmd
+  $cmd ~/src/my-project my-project
+  $cmd -o claude -m sonnet
+  $cmd -m anthropic/claude-sonnet-5-5:high
 EOF
     return 0
   fi
@@ -58,18 +77,22 @@ EOF
   local model=${${o_model[-1]:-${HW_MODEL:-}}#=}
   local dir=${${1:-$PWD}:A}
   local label=${2:-${dir:t}}
-  local ws wsid top orch out i prompt
+  local reply tab top orch out i prompt
   local -a args
 
   case $kind in
     pi | claude) ;;
-    *) print -u2 "hw: unknown orchestrator: $kind (use pi or claude)"; return 1 ;;
+    *) print -u2 "$cmd: unknown orchestrator: $kind (use pi or claude)"; return 1 ;;
   esac
-  (( $+commands[herdr] )) || { print -u2 "hw: herdr is not installed"; return 1 }
-  (( $+commands[jq] )) || { print -u2 "hw: jq is not installed"; return 1 }
+  (( $+commands[herdr] )) || { print -u2 "$cmd: herdr is not installed"; return 1 }
+  (( $+commands[jq] )) || { print -u2 "$cmd: jq is not installed"; return 1 }
   herdr status server 2>/dev/null | grep -q '^status: running' ||
-    { print -u2 "hw: the herdr server is not running. Start herdr first, outside tmux."; return 1 }
-  [[ -d $dir ]] || { print -u2 "hw: no such directory: $dir"; return 1 }
+    { print -u2 "$cmd: the herdr server is not running. Start herdr first, outside tmux."; return 1 }
+  [[ -d $dir ]] || { print -u2 "$cmd: no such directory: $dir"; return 1 }
+  if [[ $cmd == ht ]]; then
+    [[ ${HERDR_ENV:-} == 1 && -n ${HERDR_WORKSPACE_ID:-} ]] ||
+      { print -u2 "ht: run ht inside a herdr pane, or use hw"; return 1 }
+  fi
 
   # The orchestrator's extra prompt: its role, then the writing style. Only
   # the orchestrator gets these. Role agents do not.
@@ -84,24 +107,28 @@ EOF
     esac
   fi
 
-  ws=$(herdr workspace create --cwd "$dir" --label "$label" --focus) || return
-  wsid=$(jq -er '.result.workspace.workspace_id' <<<"$ws") &&
-    top=$(jq -er '.result.root_pane.pane_id' <<<"$ws") ||
-    { print -u2 "hw: unexpected reply: $ws"; return 1 }
+  case $cmd in
+    hw) reply=$(herdr workspace create --cwd "$dir" --label "$label" --focus) || return ;;
+    ht) reply=$(herdr tab create --workspace "$HERDR_WORKSPACE_ID" --cwd "$dir" \
+          --label "$label" --focus) || return ;;
+  esac
+  tab=$(jq -er '.result.root_pane.tab_id' <<<"$reply") &&
+    top=$(jq -er '.result.root_pane.pane_id' <<<"$reply") ||
+    { print -u2 "$cmd: unexpected reply: $reply"; return 1 }
 
   orch=$(herdr pane split "$top" --direction down --cwd "$dir" --no-focus |
-    jq -er '.result.pane.pane_id') || { print -u2 "hw: orchestrator split failed"; return 1 }
+    jq -er '.result.pane.pane_id') || { print -u2 "$cmd: orchestrator split failed"; return 1 }
   herdr pane run "$top" nvim >/dev/null
 
-  # Agent names must be lowercase (ids can be "wA"). A new pane needs a
-  # moment before its shell is ready.
+  # A new pane needs a moment before its shell is ready.
   for i in {1..30}; do
-    out=$(herdr agent start "${(L)wsid}-orch" --kind "$kind" --pane "$orch" -- $args 2>&1) && break
-    [[ $out == *agent_pane_busy* ]] || { print -u2 "hw: $out"; return 1 }
+    out=$(herdr agent start "$(_herdr_agent_prefix $tab)-orch" --kind "$kind" \
+      --pane "$orch" -- $args 2>&1) && break
+    [[ $out == *agent_pane_busy* ]] || { print -u2 "$cmd: $out"; return 1 }
     sleep 0.5
   done
-  [[ $out != *'"error"'* ]] || { print -u2 "hw: $out"; return 1 }
+  [[ $out != *'"error"'* ]] || { print -u2 "$cmd: $out"; return 1 }
 
   [[ ${HERDR_ENV:-} == 1 ]] ||
-    print "hw: workspace $label ($wsid) is ready. Open herdr to see it."
+    print "$cmd: $label ($tab) is ready. Open herdr to see it."
 }

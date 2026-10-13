@@ -155,9 +155,12 @@ args=(-ne ${exts[@]+"${exts[@]}"} --model "$model" --append-system-prompt "$prom
 
 self=${HERDR_PANE_ID:-}
 tab=${HERDR_TAB_ID:-}
-ws=${HERDR_WORKSPACE_ID:-}
-# Agent names must be lowercase; workspace ids can be "wA".
-name=${name:-$(printf "%s" "${ws:-w}" | tr "[:upper:]" "[:lower:]")-$role}
+# One name prefix per tab: the tab id in lower case, with ":" as "-" (wT:t2
+# -> wt-t2). Agent names allow only letters, digits, "_" and "-". The hw and
+# ht orchestrator uses the same prefix.
+prefix=${tab:-w}
+prefix=$(printf "%s" "${prefix//:/-}" | tr "[:upper:]" "[:lower:]")
+name=${name:-$prefix-$role}
 
 if ((dry)); then
   printf '%q ' herdr agent start "$name" --kind pi --pane "<$where>" -- "${args[@]}"

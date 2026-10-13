@@ -5,7 +5,7 @@
 - [herdr agent workspaces](#herdr-agent-workspaces)
   - [What you get](#what-you-get)
   - [Before you start](#before-you-start)
-  - [Start a workspace with hw](#start-a-workspace-with-hw)
+  - [Start a layout with hw or ht](#start-a-layout-with-hw-or-ht)
   - [Work with the orchestrator](#work-with-the-orchestrator)
   - [Drive agents by hand](#drive-agents-by-hand)
   - [Close an agent's pane](#close-an-agents-pane)
@@ -15,8 +15,8 @@
 
 ## What you get
 
-One herdr workspace for each project, with an orchestrator agent and role
-agents in panes:
+One herdr workspace or tab for each piece of work, with an orchestrator agent
+and role agents in panes:
 
 ```text
 +----------------+          +----------------+------+
@@ -58,13 +58,17 @@ The tmux-to-herdr setup itself is in
    [agents: Install](../../agents/README.md#install). Then open a new shell,
    so that `hw` is loaded.
 
-## Start a workspace with hw
+## Start a layout with hw or ht
+
+`hw` makes the layout in a new workspace. `ht` makes it in a new tab of the
+current workspace. Both take the same options and arguments.
 
 ```sh
 hw                              # current directory, Pi orchestrator
 hw ~/src/my-project my-project  # directory and label
 hw -o claude -m sonnet          # Claude Code orchestrator on Sonnet
 hw -h                           # usage
+ht                              # the same, in a new tab of this workspace
 ```
 
 | Option | Environment variable | Default | Meaning |
@@ -83,13 +87,16 @@ The model format depends on the orchestrator:
 | `pi` | `provider/id`, with an optional `:thinking` level | `anthropic/claude-opus-5-5`, `openrouter/z-ai/glm-5.3:high` | `pi --list-models` |
 | `claude` | an alias or a model id, with no provider | `sonnet`, `opus`, `claude-sonnet-5-5` | `claude --help` (see `--model`) |
 
-`hw` stops with a message if herdr or jq is not installed, or if the herdr
-server is not running. You can run `hw` outside herdr, for example from tmux.
-The workspace then appears in herdr, and `hw` tells you so.
+`hw` and `ht` stop with a message if herdr or jq is not installed, or if the
+herdr server is not running. You can run `hw` outside herdr, for example from
+tmux. The workspace then appears in herdr, and `hw` tells you so. `ht` works
+only in a herdr pane, and makes the tab in the workspace of that pane.
 
-`hw` makes the workspace, opens nvim at the top, and starts the orchestrator
-at the bottom. The orchestrator's name is `<workspace id>-orch` in lower case,
-for example `w4-orch`. It gets two extra prompt files that no other agent gets:
+`hw` and `ht` open nvim at the top and start the orchestrator at the bottom.
+Agent names start with the tab id in lower case, with `-` for `:`. For
+example, in tab `w4:t2` the orchestrator is `w4-t2-orch` and dev is
+`w4-t2-dev`. So each tab has its own agents, and two layouts in one workspace
+do not clash. It gets two extra prompt files that no other agent gets:
 `agents/shared/ORCHESTRATOR.md` and `agents/shared/STYLE.md` (ASD-STE100).
 
 ## Work with the orchestrator
@@ -132,7 +139,7 @@ or the `ORCHESTRATOR.md` prompt. Only the full prompt gives them. In Pi,
 You do not usually need this: the orchestrator does it. It helps when you test
 or fix something.
 
-`agent-role` must run in a shell in the workspace. It opens dev right of the
+`agent-role` must run in a shell in the layout's tab. It opens dev right of the
 pane that runs it, so run it from the orchestrator pane with the `!` shell
 prefix. Pi and Claude Code both have it:
 
@@ -146,27 +153,28 @@ The orchestrator then also sees the new agent's name.
 |---|---|
 | Start a role agent | `agent-role dev` (or `reviewer`, `qa`, `pm`) |
 | Preview the start command | `agent-role dev --dry-run` |
-| Stop role agents and close their panes | `agent-role --stop w4-dev w4-reviewer` |
+| Stop role agents and close their panes | `agent-role --stop w4-t1-dev w4-t1-reviewer` |
 | List agents | `herdr agent list` |
-| Show one agent | `herdr agent get w4-dev` |
-| Give a task and wait | `agent-role --prompt w4-dev --wait --timeout 300000`, with the task on stdin (below) |
-| Wait again, while it works | `herdr agent wait w4-dev --timeout 300000` |
-| Read its output | `herdr agent read w4-dev --source recent-unwrapped --lines 200` |
-| Stop the command that it runs | `herdr agent send-keys w4-dev esc` |
+| Show one agent | `herdr agent get w4-t1-dev` |
+| Give a task and wait | `agent-role --prompt w4-t1-dev --wait --timeout 300000`, with the task on stdin (below) |
+| Wait again, while it works | `herdr agent wait w4-t1-dev --timeout 300000` |
+| Read its output | `herdr agent read w4-t1-dev --source recent-unwrapped --lines 200` |
+| Stop the command that it runs | `herdr agent send-keys w4-t1-dev esc` |
 | Snapshot of the files | `agent-role --snapshot` (a git tree id; equal ids mean no file changed) |
-| Focus its pane | `herdr agent focus w4-dev` |
-| Close the workspace | `herdr workspace close w4` |
+| Focus its pane | `herdr agent focus w4-t1-dev` |
+| Close the tab (`ht`) | `herdr tab close w4:t1` |
+| Close the workspace (`hw`) | `herdr workspace close w4` |
 
 Give the task in a quoted heredoc. The shell then changes nothing in it, so
 backticks and `$(...)` stay text:
 
 ```sh
-agent-role --prompt w4-dev --wait --timeout 300000 <<'TASK'
+agent-role --prompt w4-t1-dev --wait --timeout 300000 <<'TASK'
 Fix the bug in `src/main.go`. Run the tests.
 TASK
 ```
 
-In `herdr agent prompt w4-dev "<task>"`, the shell runs the backticks and the
+In `herdr agent prompt w4-t1-dev "<task>"`, the shell runs the backticks and the
 `$(...)` in the task before herdr gets it.
 
 ## Close an agent's pane
@@ -187,9 +195,10 @@ There are three ways:
 3. **In the pane:** quit the agent (ctrl+d in Pi). The pane stays open with an
    idle shell. The next side agent reuses it.
 
-**Close the whole workspace** with `herdr workspace close <id>`. herdr sends
-SIGHUP to every pane, so all agents and nvim stop. Close it only when no agent
-is in a turn. You can get the work back:
+**Close the whole workspace** with `herdr workspace close <id>`, or the tab
+with `herdr tab close <id>`. herdr sends SIGHUP to every pane in it, so all
+agents and nvim stop. Close it only when no agent is in a turn. You can get
+the work back:
 
 - Pi and Claude Code keep their sessions on disk. Run `pi -r` or `claude -r`
   in the same directory and pick the session. The orchestrator and the role
@@ -201,8 +210,8 @@ is in a turn. You can get the work back:
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `hw: the herdr server is not running` | No herdr server. | Start `herdr` in a terminal tab that does not run tmux. |
-| `agent_pane_busy` | The shell in a new pane is not ready yet. | `hw` and `agent-role` retry for 15 s. Run the command again. |
+| `hw: the herdr server is not running` (or `ht:`) | No herdr server. | Start `herdr` in a terminal tab that does not run tmux. |
+| `agent_pane_busy` | The shell in a new pane is not ready yet. | `hw`, `ht`, and `agent-role` retry for 15 s. Run the command again. |
 | Claude: `agent_not_ready ... blocked during startup` | Claude Code shows the folder-trust dialog the first time in a directory. | Answer it in the pane. herdr then sees the agent. |
 | Status `blocked` | A permission prompt or a dialog waits for input. | Read the pane and answer. |
 | A wait runs to its timeout after the agent finished | The wait used `--until done`. herdr changes `done` to `idle` when someone looks at the pane. | Wait without `--until`: it ends at `idle`, `done`, or `blocked`. |
@@ -211,7 +220,8 @@ is in a turn. You can get the work back:
 | A task arrived changed, or a command in it ran | The task was in double quotes. | Use `agent-role --prompt <name> <<'TASK'`. |
 | `invalid_agent_name` | Names must be lower case: `[a-z][a-z0-9_-]`, 32 characters or fewer. | Use `--name`. |
 | `agent ... exists` | An agent with that name runs already. | `agent-role --stop <name>`, or use `--name`. |
-| The side column looks wrong | The column is built for the `hw` layout: one pane at the top, one row below. | Close the side panes, then start the side agent again. |
+| `ht: run ht inside a herdr pane` | `ht` makes a tab in the current workspace, so it needs one. | Run it in a herdr pane, or use `hw`. |
+| The side column looks wrong | The column is built for the `hw` and `ht` layout: one pane at the top, one row below. | Close the side panes, then start the side agent again. |
 | A role agent does not have a tool | Pi ignores a tool name that does not exist. | Check the names in the role file and in `extraTools`. |
 | A role agent cannot find its model | `agent-role` starts Pi with `-ne`, so only the configured extensions load. | Add the provider's extension to `extensions` in the config. |
 | A pane does not see a variable | Panes get their environment from the herdr server. `workspace create --env` reaches only the first pane. | Export the variable in that pane, or restart the herdr server from a shell that has it. |
@@ -228,6 +238,7 @@ agent-role --help
 agent-role dev --dry-run          # shows: pi -ne -e ... --model <coder preset> ...
 herdr integration status          # pi and claude: current
 hw -h                             # usage line
+ht -h                             # usage line
 ```
 
 **2. Make the scratch repo.**

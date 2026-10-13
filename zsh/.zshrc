@@ -35,7 +35,7 @@ alias vf='fd --type f --hidden --exclude .git | fzf-tmux -p | xargs nvim'
 plugins=(git docker docker-compose gcloud kubectl kubectx mvn npm node rust sbt scala sdk terraform aws nix-shell zsh-autosuggestions zsh-syntax-highlighting)
 
 # oh-my-zsh also loads $ZSH_CUSTOM/*.zsh. agents/install.sh links herdr.zsh
-# (the hw function) there, so it needs no line in this file.
+# (the hw and ht functions) there, so it needs no line in this file.
 source $ZSH/oh-my-zsh.sh
 
 # Make SDK available in the current shell
