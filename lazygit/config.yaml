@@ -281,6 +281,12 @@ git:
   # If true, periodically fetch from remote
   autoFetch: true
 
+  # Which local branches to fast-forward after a fetch: none | onlyMainBranches | allBranches.
+  # Keep `none`. The default `onlyMainBranches` moves local `main` with `git update-ref`,
+  # even when another worktree has `main` checked out (lazygit's worktree list is stale
+  # during background fetch). That worktree's index then looks like reverted commits.
+  autoForwardBranches: none
+
   # If true, periodically refresh files and submodules
   autoRefresh: true
 
