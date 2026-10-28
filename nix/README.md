@@ -121,8 +121,17 @@ by this module, but either way ensure to have a config file for `lazygit` (see [
 You may use the [config file](./../lazygit/config.yaml) from this repository, so for Linux you could do:
 
 ```shell
-curl -sSf https://raw.githubusercontent.com/vasigorc/bash-utils/main/lazygit/config.yaml ~/.config/lazygit/config.yml
+mkdir -p ~/.config/lazygit
+curl -sSf -o ~/.config/lazygit/config.yml https://raw.githubusercontent.com/vasigorc/bash-utils/main/lazygit/config.yaml
 ```
+
+Note that this config has `resetCherryPick: <c-R>`, which `lazygit` 0.66 rejects (it writes that key as `<ctrl+r>`), so with a recent
+`lazygit` fix that key first.
+
+> **Known issues of `nvim-module.nix`, fixed in the `devenv` counterpart ([devenv/nvim.nix](../devenv/README.md)):**
+> its plain `rsync -a --force` of `~/.local/share/nvim` mixes two versions of a plugin as soon as that plugin gets updated inside
+> the shell (e.g. `:CodeCompanionChat` failing with `attempt to compare number with nil`), and the one-off `lazygit --config` dump
+> goes stale and stops validating when `lazygit` is upgraded. Update plugins on the host and keep the `lazygit` config valid there.
 
 ### platform.nix
 
