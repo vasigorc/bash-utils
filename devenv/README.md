@@ -45,7 +45,7 @@ and `--no-reload` fixed it. The only downside is that you have to re-enter the s
    `~/.local-nix/state` and `~/.cache-nix`, so Neovim inside the shell never touches the host's files.
 2. Mirrors `~/.config/nvim` into `~/.config-nix/nvim`.
 3. Mirrors `~/.local/share/nvim` (plugins, parsers, ...) into `~/.local-nix/share/nvim`.
-4. Creates a default `lazygit` config if there is none.
+4. Mirrors `~/.config/lazygit` into `~/.config-nix/lazygit`. With no host config, `lazygit` runs on its built-in defaults.
 
 The host directories are only ever read.
 
@@ -68,6 +68,27 @@ builder.lua:122: attempt to compare number with nil
 To check for this, run `git status` inside a plugin checkout under `~/.local-nix/share/nvim/lazy/`. A healthy checkout is identical to
 the host's. A mixed one has the host's `HEAD` but also untracked files that the host's checkout does not have (181 of them for CodeCompanion).
 
+### lazygit
+
+[nix/nvim-module.nix](../nix/nvim-module.nix) creates the `lazygit` config once, with `lazygit --config > config.yml`. That writes a
+full dump of the defaults of whichever `lazygit` version ran, and it is never refreshed. When the shell later gets a newer `lazygit`,
+old keys stop validating (`<c-R>` became `<ctrl+r>`) and `lazygit` refuses to start with:
+
+```
+The config at `~/.config-nix/lazygit/config.yml` has a validation error.
+Unrecognized key '<c-R>' for keybinding 'Commits.ResetCherryPick[0]'.
+```
+
+This module mirrors the host's `~/.config/lazygit` instead, so `lazygit` inside the shell uses the same config as outside of it. Keep that
+config valid for the `lazygit` version that your shell resolves (`lazygit --version` inside the shell). Note that `lazygit` only reports
+the first validation error.
+
+If you used the older module, its stale dump is overwritten by the next shell entry, as long as `~/.config/lazygit` exists. Otherwise
+delete `~/.config-nix/lazygit/config.yml`.
+
+`lazygit` also **rewrites** config files it migrates, so never point `--use-config-file` at a tracked file to test it (I once
+reformatted [../lazygit/config.yaml](../lazygit/config.yaml) that way); test a copy.
+
 ### Mason shadows the Nix packages
 
 Inside Neovim, Mason's `bin` directory is first on `PATH`. If you install a tool with Mason (e.g. `:LspInstall wasm_language_tools`) that
@@ -78,6 +99,7 @@ the shell also provides as a Nix package, Neovim uses Mason's copy. The Nix one 
 | | `nix/nvim-module.nix` (`nix-shell`) | `devenv/nvim.nix` (`devenv`) |
 |---|---|---|
 | Data sync | `rsync -a --force` | `rsync -a --delete`, `mason/` protected |
+| `lazygit` config | a `lazygit --config` dump, created once | mirror of `~/.config/lazygit` |
 | `vimPlugins.lazygit-nvim`, `vimPlugins.markdown-preview-nvim` | in `buildInputs` | dropped, `lazy.nvim` installs plugins itself |
 | Package pins | the nixpkgs commit pinned in [nix/nvim.nix](../nix/nvim.nix) | the project's `devenv.yaml` and `devenv.lock` |
 

@@ -50,11 +50,12 @@
       rsync -a --delete --filter='P /mason/***' "$HOME/.local/share/nvim/" "$XDG_DATA_HOME/nvim/"
     fi
 
-    # create a default lazygit config if it doesn't exist
-    if [ ! -f "$XDG_CONFIG_HOME/lazygit/config.yml" ]; then
-      echo "Creating default lazygit config at $XDG_CONFIG_HOME/lazygit/config.yml"
-      mkdir -p "$XDG_CONFIG_HOME/lazygit"
-      lazygit --config > "$XDG_CONFIG_HOME/lazygit/config.yml"
+    # Unlike nvim-module.nix this does not dump `lazygit --config` once: that dump pins the key syntax of the lazygit
+    # that wrote it and is never refreshed, and newer lazygit versions reject old keys (e.g. `<c-R>` is now
+    # `<ctrl+r>`), so lazygit refused to start. Mirror the host's config instead; with none, lazygit uses its defaults.
+    if [ -d "$HOME/.config/lazygit" ]; then
+      echo "Syncing lazygit config from $HOME/.config/lazygit"
+      rsync -a --delete "$HOME/.config/lazygit/" "$XDG_CONFIG_HOME/lazygit/"
     fi
   '';
 }
