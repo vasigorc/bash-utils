@@ -118,6 +118,29 @@ reformatted [../lazygit/config.yaml](../lazygit/config.yaml) that way); test a c
 Inside Neovim, Mason's `bin` directory is first on `PATH`. If you install a tool with Mason (e.g. `:LspInstall wasm_language_tools`) that
 the shell also provides as a Nix package, Neovim uses Mason's copy. The Nix one is still on `PATH` outside of Neovim.
 
+#### rust-analyzer: take it from the toolchain, not from Mason
+
+`rust-analyzer` has to match the `cargo` it drives, so do not install it with Mason. LazyVim's Rust extra does not either: it only asks Mason
+for `codelldb` and expects `rust-analyzer` on `PATH`, which is where `rustaceanvim` looks for it. Let each environment provide its own: the
+`rustup` component on the host, and the Nix one that ships with the toolchain in the shell (`languages.rust`).
+
+I once had a Mason copy from a year earlier shadowing the Nix one. It passes `--lockfile-path` to `cargo metadata`, which cargo 1.99.1 does not
+accept, so every workspace load failed and `rust-analyzer` quietly fell back to a `--no-deps` workspace: your own crate plus the sysroot, but
+none of its dependencies. The symptoms: `K` answers `No information available` on anything from a dependency, while `:checkhealth vim.lsp` shows
+a healthy, attached client. It worked on the host only because `rustup` had an older cargo (1.90.0) that still accepts the flag.
+
+To get rid of it, uninstall it on the host first and then inside the shell, because the data sync is additive and would otherwise copy
+the host's package back:
+
+```vim
+:MasonUninstall rust-analyzer
+```
+
+To diagnose something similar, start Neovim with `RA_LOG='info,project_model=debug'`, look for `WARN ... cargo metadata failed` in the log file
+given by `--log-file` in the `Command` that `:checkhealth vim.lsp` shows for `rust-analyzer` (copy it before quitting, Neovim deletes its temp dir
+on exit), and ask the server for `rust-analyzer/analyzerStatus`, which starts with `Loaded N packages`. A tiny number means the dependencies were
+not loaded: 15 with the broken Mason copy against 235 with the Nix one, for a crate whose `cargo metadata` lists 265 packages.
+
 ### Example: `.wat` files
 
 In [wasm_definitive_guide](https://github.com/vasigorc/wasm_definitive_guide) the shell provides
