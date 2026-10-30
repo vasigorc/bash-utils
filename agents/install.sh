@@ -1,7 +1,23 @@
 #!/usr/bin/env bash
-# install.sh: link the agent tools from this repo into your home directory.
+# install.sh: copy the agent tools from this repo into an install directory,
+# and link them into your home directory from there.
 #
 # Usage: agents/install.sh [--dry-run] [--uninstall]
+#
+# The links never point into the repo, so edits, pulls and branch switches in
+# the repo do not change the live tools. Run the script again to sync the
+# install directory (rsync --delete). The copy keeps the repo layout:
+# agent-role finds ../roles and herdr.zsh finds ../../agents from there.
+#
+# Install directory: $AGENT_ROLES_HOME, default ~/.local/share/agent-roles.
+# The copy never includes roles/config.example.json, pi/ or test/. The
+# machine config (~/.config/agent-roles/config.json) is not in the copy.
+#
+# Local overlay: $AGENT_ROLES_OVERLAY, default ~/.config/agent-roles/local.
+# It has the repo layout (for example agents/roles/<role>.md). The script
+# copies it over the install directory after each sync, so local-only files
+# stay live and are never in the repo. An overlay file replaces the repo file
+# with the same path; the script prints each one.
 #
 # The script finds the repo from its own location, so the repo can live
 # anywhere and have any name. You can run it more than one time. It replaces
@@ -27,6 +43,25 @@ say() { printf '%s\n' "$*"; }
 
 zsh_custom=${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}
 config=${XDG_CONFIG_HOME:-$HOME/.config}/agent-roles/config.json
+dest=${AGENT_ROLES_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/agent-roles}
+excludes=(--exclude .git --exclude .DS_Store
+  --exclude /roles/config.example.json --exclude /pi/ --exclude /test/)
+overlay=${AGENT_ROLES_OVERLAY:-${config%/*}/local}
+
+if ((!uninstall)); then
+  command -v rsync >/dev/null || { say "missing  rsync"; exit 1; }
+  run mkdir -p "$dest/agents" "$dest/terminals/herdr"
+  run rsync -a --delete "${excludes[@]}" "$repo/agents/" "$dest/agents/"
+  run rsync -a --delete "$repo/terminals/herdr/herdr.zsh" "$dest/terminals/herdr/"
+  say "synced   $dest from $repo"
+  if [[ -d $overlay ]]; then
+    run rsync -a --exclude .DS_Store --exclude '*.patch' "$overlay/" "$dest/"
+    while IFS= read -r f; do
+      if [[ -e $repo/$f ]]; then say "overlay  $f (replaces the repo file)"
+      else say "overlay  $f"; fi
+    done < <(cd "$overlay" && find . -type f ! -name .DS_Store ! -name '*.patch' | sed 's|^\./||' | sort)
+  fi
+fi
 
 # Each entry: source in the repo | link | directory that must exist (or "-").
 links=(
@@ -37,9 +72,10 @@ links=(
 )
 
 link() { # source link
-  local src=$repo/$1 dst=$2
-  if [[ ! -e $src ]]; then
-    say "missing  $src is not in the repo. Nothing linked for $dst"
+  local src=$dest/$1 dst=$2
+  # In a dry run the copy can be missing, so check the repo source instead.
+  if [[ ! -e $src ]] && ! { ((dry)) && [[ -e $repo/$1 ]]; }; then
+    say "missing  $src is not in the install copy. Nothing linked for $dst"
     return
   fi
   if [[ -L $dst && $(readlink "$dst") == "$src" ]]; then
@@ -61,8 +97,9 @@ link() { # source link
 }
 
 unlink_own() { # source link
-  local src=$repo/$1 dst=$2
-  if [[ -L $dst && $(readlink "$dst") == "$src" ]]; then
+  local dst=$2
+  if [[ -L $dst && ( $(readlink "$dst") == "$dest/$1" ||
+    $(readlink "$dst") == "$repo/$1" ) ]]; then
     run rm "$dst"
     say "removed  $dst"
   fi
