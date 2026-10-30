@@ -180,7 +180,8 @@ split() { # pane direction [ratio]
 
 side_panes() {
   herdr pane list --workspace "${tab%%:*}" |
-    jq -c --arg t "$tab" '[.result.panes[] | select(.tab_id == $t and .label == "side")]'
+    jq -c --arg t "$tab" '[.result.panes[] | select(.tab_id == $t and
+      (.label == "side" or ((.label // "") | startswith("side: "))))]'
 }
 
 # Move a pane next to a target pane in this tab. herdr moves panes only between
@@ -217,8 +218,8 @@ case $where in
     if [[ -z $pane ]]; then
       last=$(jq -r '.[-1].pane_id // empty' <<<"$sides")
       if [[ -n $last ]]; then pane=$(split "$last" down); else pane=$(new_side_column); fi
-      herdr pane rename "$pane" side >/dev/null
     fi
+    herdr pane rename "$pane" "side: $name" >/dev/null
     ;;
   *) pane=$where ;;
 esac
