@@ -209,6 +209,7 @@ new_side_column() {
   echo "$side"
 }
 
+label_prefix=""
 case $where in
   right) pane=$(split "$self" right) ;;
   side)
@@ -219,10 +220,16 @@ case $where in
       last=$(jq -r '.[-1].pane_id // empty' <<<"$sides")
       if [[ -n $last ]]; then pane=$(split "$last" down); else pane=$(new_side_column); fi
     fi
-    herdr pane rename "$pane" "side: $name" >/dev/null
+    label_prefix="side: "
     ;;
-  *) pane=$where ;;
+  *)
+    pane=$where
+    label=$(herdr pane list --workspace "${tab%%:*}" |
+      jq -r --arg p "$pane" '.result.panes[] | select(.pane_id == $p) | .label // ""')
+    case $label in side | "side: "*) label_prefix="side: " ;; esac
+    ;;
 esac
+herdr pane rename "$pane" "$label_prefix$pane · $name" >/dev/null
 
 # A new pane needs a moment before its shell is ready. Retry while herdr
 # reports the pane as busy.

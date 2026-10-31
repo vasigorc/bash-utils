@@ -128,6 +128,7 @@ EOF
     sleep 0.5
   done
   [[ $out != *'"error"'* ]] || { print -u2 "$cmd: $out"; return 1 }
+  herdr pane rename "$orch" "$orch · $(_herdr_agent_prefix $tab)-orch" >/dev/null
 
   [[ ${HERDR_ENV:-} == 1 ]] ||
     print "$cmd: $label ($tab) is ready. Open herdr to see it."

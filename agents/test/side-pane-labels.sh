@@ -77,31 +77,60 @@ check() {
 fixture side '{"name":"busy"}'
 check 'new pane below legacy side column uses resolved default name' <<'EXPECTED'
 split side-pane down
-rename new-pane side: wt-t2-reviewer
+rename new-pane side: new-pane · wt-t2-reviewer
 start wt-t2-reviewer new-pane
 EXPECTED
 
 fixture 'side: busy' '{"name":"busy"}'
 check 'new pane below named side column stays in that column' <<'EXPECTED'
 split side-pane down
-rename new-pane side: wt-t2-reviewer
+rename new-pane side: new-pane · wt-t2-reviewer
 start wt-t2-reviewer new-pane
 EXPECTED
 
 fixture side null
 check 'reuse legacy idle pane and label it with explicit name' --name reviewer-next <<'EXPECTED'
-rename side-pane side: reviewer-next
+rename side-pane side: side-pane · reviewer-next
 start reviewer-next side-pane
 EXPECTED
 
 fixture 'side: old-reviewer' null
 check 'reuse named idle pane and replace its old name' --name reviewer-next <<'EXPECTED'
-rename side-pane side: reviewer-next
+rename side-pane side: side-pane · reviewer-next
 start reviewer-next side-pane
+EXPECTED
+
+fixture 'side: stale-pane · old-reviewer' null
+check 'reuse addressed idle pane and refresh its stale address' --name reviewer-next <<'EXPECTED'
+rename side-pane side: side-pane · reviewer-next
+start reviewer-next side-pane
+EXPECTED
+
+check 'right pane includes address and default name' --pane right <<'EXPECTED'
+split caller right
+rename new-pane new-pane · wt-t2-reviewer
+start wt-t2-reviewer new-pane
+EXPECTED
+
+check 'explicit ordinary pane includes address without side marker' --pane non-side <<'EXPECTED'
+rename non-side non-side · wt-t2-reviewer
+start wt-t2-reviewer non-side
+EXPECTED
+
+fixture side null
+check 'explicit legacy side pane keeps its marker' --pane side-pane <<'EXPECTED'
+rename side-pane side: side-pane · wt-t2-reviewer
+start wt-t2-reviewer side-pane
+EXPECTED
+
+fixture 'side: stale-pane · old-reviewer' null
+check 'explicit addressed side pane keeps marker and refreshes address' --pane side-pane <<'EXPECTED'
+rename side-pane side: side-pane · wt-t2-reviewer
+start wt-t2-reviewer side-pane
 EXPECTED
 
 if ((failures)); then
   echo "$failures test(s) failed"
   exit 1
 fi
-echo 'All 4 side-pane label tests passed'
+echo 'All 9 pane label tests passed'
