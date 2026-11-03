@@ -104,6 +104,17 @@ Check it from a pane running Pi:
 tmux display -p -t <pane> 'alt=#{alternate_on} mouse=#{mouse_any_flag}'   # want alt=0 mouse=0
 ```
 
+### `theme: "system"` (follow the terminal's Catppuccin flavor)
+
+`system` builds Pi's colors from the terminal's reported background, foreground
+and 16 ANSI colors, so Pi matches the WezTerm flavor picked with `Cmd+Shift+K`
+(see `terminals/wezterm/`). It is Pi's default, but it is set explicitly here:
+picking a theme in `/settings` writes a fixed one (such as `dark`) that paints
+dark panels on a Latte background.
+
+Pi reads the colors at startup and again only on a light/dark change. After
+switching between Frappe, Macchiato and Mocha, restart running Pi sessions.
+
 ### Excluding a package resource
 
 `packages` entries can be objects that filter what each package loads. Here

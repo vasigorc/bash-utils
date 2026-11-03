@@ -36,5 +36,6 @@
   "terminal": {
     "showTerminalProgress": true
   },
-  "tuiMode": "regular"
+  "tuiMode": "regular",
+  "theme": "system"
 }
