@@ -41,64 +41,63 @@ config.enable_kitty_keyboard = true
 config.send_composed_key_when_left_alt_is_pressed = false
 config.send_composed_key_when_right_alt_is_pressed = false
 
--- Catppuccin Macchiato: use WezTerm's built-in scheme name, then pin the
--- Kitty-proven palette below so the theme survives even if scheme names change.
-config.color_scheme = "Catppuccin Macchiato"
-config.colors = {
-  foreground = "#cad3f5",
-  background = "#24273a",
-  cursor_bg = "#f4dbd6",
-  cursor_fg = "#24273a",
-  cursor_border = "#f4dbd6",
-  selection_fg = "#24273a",
-  selection_bg = "#f4dbd6",
-  scrollbar_thumb = "#6e738d",
-  split = "#6e738d",
-  ansi = {
-    "#494d64", -- black
-    "#ed8796", -- red
-    "#a6da95", -- green
-    "#eed49f", -- yellow
-    "#8aadf4", -- blue
-    "#f5bde6", -- magenta
-    "#8bd5ca", -- cyan
-    "#b8c0e0", -- white
-  },
-  brights = {
-    "#5b6078", -- bright black
-    "#ed8796", -- bright red
-    "#a6da95", -- bright green
-    "#eed49f", -- bright yellow
-    "#8aadf4", -- bright blue
-    "#f5bde6", -- bright magenta
-    "#8bd5ca", -- bright cyan
-    "#a5adcb", -- bright white
-  },
-  tab_bar = {
-    background = "#181926",
-    active_tab = {
-      fg_color = "#181926",
-      bg_color = "#c6a0f6",
-      intensity = "Bold",
-    },
-    inactive_tab = {
-      fg_color = "#cad3f5",
-      bg_color = "#1e2030",
-    },
-    inactive_tab_hover = {
-      fg_color = "#cad3f5",
-      bg_color = "#363a4f",
-    },
-    new_tab = {
-      fg_color = "#cad3f5",
-      bg_color = "#181926",
-    },
-    new_tab_hover = {
-      fg_color = "#181926",
-      bg_color = "#8aadf4",
-    },
-  },
-}
+-- Catppuccin flavor: WezTerm ships Latte, Frappe, Macchiato and Mocha.
+-- No pinned colors here, so changing the scheme changes everything, and
+-- herdr (theme "terminal") follows this palette.
+-- Cmd+Shift+K opens a flavor picker; the choice is saved in ./flavour and
+-- survives restarts. Missing or unknown file falls back to Macchiato.
+local catppuccin_flavors = { "Latte", "Frappe", "Macchiato", "Mocha" }
+local flavor_file = wezterm.config_dir .. "/flavour"
+local builtin_schemes = wezterm.color.get_builtin_schemes()
+
+local function read_flavor()
+  local f = io.open(flavor_file, "r")
+  if not f then
+    return "Macchiato"
+  end
+  local flavor = (f:read("*l") or ""):gsub("%s+", "")
+  f:close()
+  if builtin_schemes["Catppuccin " .. flavor] then
+    return flavor
+  end
+  return "Macchiato"
+end
+
+local current_flavor = read_flavor()
+config.color_scheme = "Catppuccin " .. current_flavor
+-- Tab title and status colors come from the same scheme.
+local palette = builtin_schemes[config.color_scheme]
+
+local function flavor_choices()
+  local choices = {}
+  for _, flavor in ipairs(catppuccin_flavors) do
+    local label = flavor
+    if flavor == current_flavor then
+      label = flavor .. "  (current)"
+    end
+    table.insert(choices, { id = flavor, label = label })
+  end
+  return choices
+end
+
+local pick_catppuccin_flavor = act.InputSelector({
+  title = "Catppuccin flavor",
+  choices = flavor_choices(),
+  fuzzy = true,
+  action = wezterm.action_callback(function(window, pane, id)
+    if not id then
+      return
+    end
+    local f = io.open(flavor_file, "w")
+    if not f then
+      wezterm.log_error("cannot write " .. flavor_file)
+      return
+    end
+    f:write(id .. "\n")
+    f:close()
+    window:perform_action(act.ReloadConfiguration, pane)
+  end),
+})
 
 -- -----------------------------------------------------------------------------
 -- tmux-like tabs/status
@@ -147,16 +146,16 @@ wezterm.on("format-tab-title", function(tab, _, _, _, _, max_width)
 
   if tab.is_active then
     return {
-      { Background = { Color = "#c6a0f6" } },
-      { Foreground = { Color = "#181926" } },
+      { Background = { Color = palette.tab_bar.active_tab.bg_color } },
+      { Foreground = { Color = palette.tab_bar.active_tab.fg_color } },
       { Attribute = { Intensity = "Bold" } },
       { Text = " " .. index .. ":" .. title .. " " },
     }
   end
 
   return {
-    { Background = { Color = "#1e2030" } },
-    { Foreground = { Color = "#cad3f5" } },
+    { Background = { Color = palette.tab_bar.inactive_tab.bg_color } },
+    { Foreground = { Color = palette.tab_bar.inactive_tab.fg_color } },
     { Text = " " .. index .. ":" .. title .. " " },
   }
 end)
@@ -166,9 +165,9 @@ wezterm.on("update-right-status", function(window, pane)
   local workspace = window:active_workspace()
 
   window:set_right_status(wezterm.format({
-    { Foreground = { Color = "#8aadf4" } },
+    { Foreground = { Color = palette.ansi[5] } },
     { Text = " dir:" .. cwd .. " " },
-    { Foreground = { Color = "#c6a0f6" } },
+    { Foreground = { Color = palette.tab_bar.active_tab.bg_color } },
     { Text = " session:" .. workspace .. " " },
   }))
 end)
@@ -185,6 +184,9 @@ config.keys = {
   -- Direct WezTerm copy-mode entry for Claude Code / Pi output. This avoids
   -- stealing Ctrl-b from tmux; WezTerm's default Ctrl-Shift-X still works too.
   { key = "x", mods = "CMD|SHIFT", action = act.ActivateCopyMode },
+
+  -- Catppuccin flavor picker (see Appearance section).
+  { key = "k", mods = "CMD|SHIFT", action = pick_catppuccin_flavor },
 
   -- Shift+Enter inserts a newline in Claude Code / Pi instead of submitting.
   -- Send the CSI-u encoding (ESC [ 13 ; 2 u) rather than a bare ESC+CR: it is a

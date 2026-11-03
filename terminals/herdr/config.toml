@@ -18,22 +18,10 @@
 #   vim-tmux-navigator -> vim-herdr-navigation plugin ([[keys.command]] below).
 
 [theme]
-# No built-in macchiato ("catppuccin" is mocha); layer the macchiato palette on top.
-name = "catppuccin"
-
-[theme.custom]
-panel_bg = "reset"          # use WezTerm's own macchiato background
-sidebar_bg = "#1e2030"      # mantle
-active_row_bg = "#363a4f"   # surface0
-selection_bg = "#5b6078"    # surface2 (tmux used blue-on-base; keep text readable)
-surface_dim = "#363a4f"     # surface0
-text = "#cad3f5"
-accent = "#8aadf4"          # blue
-mauve = "#c6a0f6"
-green = "#a6da95"
-yellow = "#eed49f"
-red = "#ed8796"
-peach = "#f5a97f"
+# herdr has no built-in macchiato ("catppuccin" is mocha). "terminal" takes
+# UI colors from the host palette, so WezTerm's Catppuccin scheme drives herdr.
+# After switching the WezTerm scheme, resize or `kill -WINCH <herdr-client-pid>`.
+name = "terminal"
 
 [terminal]
 # split-window -c "#{pane_current_path}"
