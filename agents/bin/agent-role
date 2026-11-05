@@ -31,12 +31,26 @@
 # Environment:
 #   AGENT_ROLES_CONFIG  machine config (default ~/.config/agent-roles/config.json)
 #   AGENT_ROLES_DIR     role files (default: ../roles next to this script)
+#   AGENT_ROLES_PI_DIR  Pi agent dir of role agents
+#                       (default ~/.local/state/agent-roles/pi-agent)
+#
+# Role agents do not use your Pi agent dir (~/.pi/agent). They use their own,
+# so Pi does not find your extensions, packages, skills and prompts there.
+# From outside the project, only the config extensions load, and the
+# extensions that your Pi install itself adds to each agent dir. A project
+# that you trust can add its own. Before each start, agent-role links
+# auth.json, models.json, keybindings.json, trust.json and AGENTS.md from your
+# dir, and copies the display settings and the thinking level. Role sessions
+# are in the role dir, so /resume in your own Pi does not show them.
 set -euo pipefail
 
 here=$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)
 roles_dir=${AGENT_ROLES_DIR:-$here/../roles}
 config=${AGENT_ROLES_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/agent-roles/config.json}
 cache=${XDG_CACHE_HOME:-$HOME/.cache}/agent-roles
+agent_dir=${AGENT_ROLES_PI_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/agent-roles/pi-agent}
+user_dir=${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}
+[[ $user_dir != "$agent_dir" ]] || user_dir=$HOME/.pi/agent
 
 die() { echo "agent-role: $*" >&2; exit 1; }
 usage() { sed -n '2,/^set -euo/{/^set -euo/d;s/^# \{0,1\}//;p;}' "${BASH_SOURCE[0]}"; exit "${1:-0}"; }
@@ -148,10 +162,69 @@ prompt=$cache/$role.md
   body
 } >"$prompt"
 
-# -ne: no discovered extensions. Only the extensions in the config load, so
-# memory, chat, and UI extensions do not run in role agents.
-args=(-ne ${exts[@]+"${exts[@]}"} --model "$model" --append-system-prompt "$prompt")
+# No -ne here: some Pi installs refuse it. The role agent dir does the same
+# job (see the header), with and without such an install.
+args=(${exts[@]+"${exts[@]}"} --model "$model" --append-system-prompt "$prompt")
 [[ -n $tools ]] && args+=(--tools "$tools")
+
+# Make the role agent dir ready. Run it before each start, so changes in your
+# own dir show up in the next role agent.
+prepare_agent_dir() {
+  local f s=$agent_dir/settings.json u=$user_dir/settings.json cur=/dev/null
+  mkdir -p "$agent_dir"
+  for f in auth.json models.json keybindings.json trust.json AGENTS.md; do
+    if [[ -e $user_dir/$f ]]; then
+      # Change a link only when it is wrong: a Pi that starts must not find
+      # the file missing.
+      [[ $(readlink "$agent_dir/$f" || true) == "$user_dir/$f" ]] ||
+        ln -sfn "$user_dir/$f" "$agent_dir/$f"
+    elif [[ -L $agent_dir/$f ]]; then
+      rm "$agent_dir/$f"
+    fi
+  done
+  # Keep the keys that Pi or the Pi install wrote. Copy some keys from your
+  # settings. No packages, and no built-in extensions: the config gives each
+  # one that a role agent needs with -e. Hold the lock that Pi uses for this
+  # file, so that parallel starts and Pi do not lose a write. Pi holds it for
+  # milliseconds. Do not remove a lock that is not ours: stop after 5 s.
+  # The EXIT trap uses globals: bash removes the locals before it runs.
+  local i
+  settings_lock=$s.lock settings_tmp=""
+  for i in {1..100}; do
+    mkdir "$settings_lock" 2>/dev/null && break
+    ((i < 100)) ||
+      die "$settings_lock is there for 5 s. If no Pi uses $agent_dir, remove it."
+    sleep 0.05
+  done
+  trap 'rm -f "$settings_tmp"; rmdir "$settings_lock" 2>/dev/null' EXIT
+  [[ -s $s ]] && cur=$s
+  [[ -s $u ]] || u=/dev/null
+  settings_tmp=$(mktemp "$agent_dir/.settings.XXXXXX")
+  jq -n --slurpfile cur "$cur" --slurpfile u "$u" '($cur[0] // {})
+    + (($u[0] // {}) | {theme, tuiMode, terminal, hideThinkingBlock,
+      defaultThinkingLevel} | with_entries(select(.value != null)))
+    + {packages: [], extensions: ["-builtin:mcp", "-builtin:codemode",
+      "-builtin:tool-search", "-builtin:llama.cpp"]}' >"$settings_tmp"
+  mv "$settings_tmp" "$s"
+  rmdir "$settings_lock"
+  trap - EXIT
+}
+
+# Warn when the project can add extensions. A role agent loads them if you
+# trust the project, as your own Pi does.
+warn_project_extensions() {
+  local d top
+  top=$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null || true)
+  for d in "$cwd" ${top:+"$top"}; do
+    if [[ -d $d/.pi/extensions ]] ||
+      jq -e '(.extensions // []) + (.packages // []) | length > 0' \
+        "$d/.pi/settings.json" >/dev/null 2>&1; then
+      echo "agent-role: note: $d/.pi adds extensions or packages. The role" \
+        "agent loads them if you trust that project." >&2
+      return
+    fi
+  done
+}
 
 self=${HERDR_PANE_ID:-}
 tab=${HERDR_TAB_ID:-}
@@ -163,6 +236,7 @@ prefix=$(printf "%s" "${prefix//:/-}" | tr "[:upper:]" "[:lower:]")
 name=${name:-$prefix-$role}
 
 if ((dry)); then
+  echo "pane env: PI_CODING_AGENT_DIR=$agent_dir"
   printf '%q ' herdr agent start "$name" --kind pi --pane "<$where>" -- "${args[@]}"
   echo
   exit
@@ -173,9 +247,13 @@ if herdr agent get "$name" >/dev/null 2>&1; then
   die "agent $name exists; use --name, or run: agent-role --stop $name"
 fi
 
+prepare_agent_dir
+warn_project_extensions
+
+# A new pane gets the role agent dir in its environment.
 split() { # pane direction [ratio]
-  herdr pane split "$1" --direction "$2" ${3:+--ratio "$3"} --cwd "$cwd" --no-focus |
-    jq -er '.result.pane.pane_id'
+  herdr pane split "$1" --direction "$2" ${3:+--ratio "$3"} --cwd "$cwd" --no-focus \
+    --env "PI_CODING_AGENT_DIR=$agent_dir" | jq -er '.result.pane.pane_id'
 }
 
 side_panes() {
@@ -209,37 +287,104 @@ new_side_column() {
   echo "$side"
 }
 
-label_prefix=""
+label_prefix="" new=1
 case $where in
   right) pane=$(split "$self" right) ;;
   side)
     sides=$(side_panes)
     # Reuse a side pane whose agent has exited.
     pane=$(jq -r 'map(select(.agent == null)) | .[0].pane_id // empty' <<<"$sides")
-    if [[ -z $pane ]]; then
+    if [[ -n $pane ]]; then
+      new=0
+    else
       last=$(jq -r '.[-1].pane_id // empty' <<<"$sides")
       if [[ -n $last ]]; then pane=$(split "$last" down); else pane=$(new_side_column); fi
     fi
     label_prefix="side: "
     ;;
   *)
-    pane=$where
+    pane=$where new=0
     label=$(herdr pane list --workspace "${tab%%:*}" |
       jq -r --arg p "$pane" '.result.panes[] | select(.pane_id == $p) | .label // ""')
     case $label in side | "side: "*) label_prefix="side: " ;; esac
     ;;
 esac
 herdr pane rename "$pane" "$label_prefix$pane · $name" >/dev/null
+# herdr cannot set the environment of a pane that is there already. Set the
+# role agent dir in its shell. The shell keeps it after the agent exits.
+if ((!new)); then
+  herdr pane run "$pane" "export PI_CODING_AGENT_DIR=$(printf %q "$agent_dir")" >/dev/null
+fi
+
+# Print why the start failed, with the last lines of the pane.
+start_failed() {
+  echo "agent-role: agent start failed in pane $pane: $1" >&2
+  echo "agent-role: last lines of pane $pane:" >&2
+  if [[ -s $lines ]]; then cat "$lines" >&2
+  else herdr pane read "$pane" --source recent --lines 15 >&2 || true; fi
+  exit 1
+}
+
+# Start the agent and print the herdr reply. herdr waits until Pi is ready,
+# for up to 60 s. In a new pane, watch the pane while herdr waits, and stop
+# early when Pi exited. The proof: Pi was in front, and then the shell was in
+# front again for 1 s. A process is Pi when its argv has the prompt file of
+# this start, or when its name is "pi" (Pi sets its process title). Shell
+# hooks match neither. A failed Pi can exit in less than 0.5 s, so look every
+# 0.1 s. If Pi is not seen, wait for herdr. After a stop, keep the last lines
+# and close the pane: a stopped start stays in herdr until its pane closes.
+# In a pane that was there already, always wait for herdr.
+fg_job() { # prints: pi, shell, other, or nothing if herdr does not know
+  herdr pane process-info --pane "$pane" 2>/dev/null |
+    jq -r --arg p "$prompt" '.result.process_info |
+      if .foreground_process_group_id == null then empty
+      elif .foreground_process_group_id == .shell_pid then "shell"
+      elif any(.foreground_processes[]?; .argv0 == "pi" or
+        ((.argv // []) | join(" ") | contains($p))) then "pi"
+      else "other" end'
+}
+start_agent() {
+  local reply job seen=0 idle=0
+  reply=$(mktemp "${TMPDIR:-/tmp}/agent-role-start.XXXXXX")
+  herdr agent start "$name" --kind pi --pane "$pane" --timeout 60000 -- "${args[@]}" \
+    >"$reply" 2>&1 &
+  job=$!
+  while ((new)) && kill -0 "$job" 2>/dev/null; do
+    sleep 0.1
+    case $(fg_job || true) in
+      pi) seen=1 idle=0 ;;
+      shell) ((seen)) && idle=$((idle + 1)) ;;
+      other) idle=0 ;;
+    esac
+    ((idle >= 10)) || continue
+    if [[ $(fg_job || true) == shell ]] && kill -0 "$job" 2>/dev/null; then
+      kill "$job" 2>/dev/null || true
+      wait "$job" 2>/dev/null || true
+      rm -f "$reply"
+      herdr pane read "$pane" --source recent --lines 15 >"$lines" 2>&1 || true
+      herdr pane close "$pane" >/dev/null 2>&1 || true
+      echo "Pi exited before it was ready; the pane is closed"
+      return 1
+    fi
+  done
+  local rc=0
+  wait "$job" || rc=$?
+  cat "$reply"
+  rm -f "$reply"
+  return "$rc"
+}
 
 # A new pane needs a moment before its shell is ready. Retry while herdr
 # reports the pane as busy.
+lines=$(mktemp "${TMPDIR:-/tmp}/agent-role-lines.XXXXXX")
+trap 'rm -f "$lines"' EXIT
 for _ in {1..30}; do
-  if out=$(herdr agent start "$name" --kind pi --pane "$pane" --timeout 60000 -- "${args[@]}" 2>&1); then
+  if out=$(start_agent); then
     break
   fi
-  [[ $out == *agent_pane_busy* ]] || die "agent start failed in pane $pane: $out"
+  [[ $out == *agent_pane_busy* ]] || start_failed "$out"
   sleep 0.5
 done
-[[ $out != *'"error"'* ]] || die "agent start failed in pane $pane: $out"
+[[ $out != *'"error"'* ]] || start_failed "$out"
 jq -n --arg name "$name" --arg role "$role" --arg pane "$pane" --arg model "$model" \
   '{name: $name, role: $role, pane: $pane, model: $model}'

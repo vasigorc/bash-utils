@@ -200,9 +200,11 @@ with `herdr tab close <id>`. herdr sends SIGHUP to every pane in it, so all
 agents and nvim stop. Close it only when no agent is in a turn. You can get
 the work back:
 
-- Pi and Claude Code keep their sessions on disk. Run `pi -r` or `claude -r`
-  in the same directory and pick the session. The orchestrator and the role
-  agents share that directory, so check that you pick the right one.
+- Pi and Claude Code keep their sessions on disk. For the orchestrator, run
+  `pi -r` or `claude -r` in the same directory and pick the session. Role
+  agents keep their sessions in their own Pi agent dir. To get one back, run
+  `PI_CODING_AGENT_DIR=~/.local/state/agent-roles/pi-agent pi -r` in the same
+  directory (or the dir in `AGENT_ROLES_PI_DIR`, if you set it).
 - nvim does not save open buffers, but it keeps a swap file. Recover the edits
   with `nvim -r <file>`.
 
@@ -223,7 +225,8 @@ the work back:
 | `ht: run ht inside a herdr pane` | `ht` makes a tab in the current workspace, so it needs one. | Run it in a herdr pane, or use `hw`. |
 | The side column looks wrong | The column is built for the `hw` and `ht` layout: one pane at the top, one row below. | Close the side panes, then start the side agent again. |
 | A role agent does not have a tool | Pi ignores a tool name that does not exist. | Check the names in the role file and in `extraTools`. |
-| A role agent cannot find its model | `agent-role` starts Pi with `-ne`, so only the configured extensions load. | Add the provider's extension to `extensions` in the config. |
+| A role agent cannot find its model | Role agents have their own Pi agent dir, so only the configured extensions load. | Add the provider's extension to `extensions` in the config. |
+| `agent start failed ... Pi exited before it was ready` | Pi stopped at startup. `agent-role` prints the last lines of the pane, and closes the pane if it made it. | Read the error in those lines, for example a model that is not there. |
 | A pane does not see a variable | Panes get their environment from the herdr server. `workspace create --env` reaches only the first pane. | Export the variable in that pane, or restart the herdr server from a shell that has it. |
 
 ## Test the setup
@@ -235,7 +238,7 @@ about one dollar. Run the commands from the root of this repo, in a herdr pane.
 
 ```sh
 agent-role --help
-agent-role dev --dry-run          # shows: pi -ne -e ... --model <coder preset> ...
+agent-role dev --dry-run          # shows: pane env, then pi -e ... --model <coder preset> ...
 herdr integration status          # pi and claude: current
 hw -h                             # usage line
 ht -h                             # usage line
