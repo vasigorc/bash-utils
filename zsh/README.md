@@ -21,10 +21,11 @@ A compact variant of the [agnoster](https://github.com/ohmyzsh/ohmyzsh/wiki/Them
 
 Changes from agnoster:
 - No `user@host` segment
-- Path shortened to last 2 directories (e.g. `apps/infra-central`)
+- Path shortened to last 2 directories (e.g. `apps/api`)
 - `$` / `#` suffix to distinguish normal user from root
 - Removed unused segments (bzr, hg, terraform, AWS)
 - Keeps git branch + dirty state, virtualenv/conda, status indicators
+- Git segment runs 3 git processes per prompt instead of 13 (one `git status --porcelain=v2 --branch` replaces `parse_git_dirty` + `vcs_info`); output is the same
 
 ### Install
 
