@@ -17,7 +17,15 @@ echo '{}' >"$PI_CODING_AGENT_DIR/auth.json"
 export HERDR_ENV=1 HERDR_PANE_ID=caller HERDR_TAB_ID=wT:t2
 export PANE_FIXTURE="$tmp/panes.json" HERDR_LOG="$tmp/herdr.log"
 
-printf '%s\n' '{"presets":{"test":"test-model"}}' >"$AGENT_ROLES_CONFIG"
+printf '%s\n' '{"presets":{"test":"test/model"}}' >"$AGENT_ROLES_CONFIG"
+
+# Pi lists the models that it can use: here only test/model.
+cat >"$tmp/bin/pi" <<'STUB'
+#!/usr/bin/env bash
+[[ $1 == --list-models ]] || { echo "unexpected pi call: $*" >&2; exit 1; }
+printf '%s\n' 'provider  model' 'test      model'
+STUB
+chmod +x "$tmp/bin/pi"
 cat >"$tmp/roles/reviewer.md" <<'ROLE'
 ---
 preset: test

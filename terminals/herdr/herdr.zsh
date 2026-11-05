@@ -55,9 +55,11 @@ works only inside herdr.
   -m, --model         The orchestrator's model.
                       Default: \$HW_MODEL (now: ${HW_MODEL:-not set}), else the
                       orchestrator's own default.
-                      pi:     provider/id, with an optional :thinking level.
+                      pi:     provider/id, with an optional :thinking level,
+                              or a preset name of the agent-roles config.
                               Examples: anthropic/claude-opus-5-5,
-                              openrouter/z-ai/glm-5.3:high. List: pi --list-models
+                              openrouter/z-ai/glm-5.3:high, strong.
+                              List: pi --list-models
                       claude: an alias or a model id, with no provider.
                               Examples: sonnet, opus, claude-sonnet-5-5.
   dir                 The working directory. Default: the current directory.
@@ -99,6 +101,12 @@ EOF
   prompt=${XDG_CACHE_HOME:-$HOME/.cache}/agent-roles/orchestrator.md
   mkdir -p ${prompt:h}
   { cat $_HW_AGENTS/shared/ORCHESTRATOR.md && print && cat $_HW_AGENTS/shared/STYLE.md } >| $prompt 2>/dev/null
+  # For pi, a preset name of the agent-roles config gives its model. Any
+  # other value goes to pi as it is.
+  if [[ $kind == pi && -n $model && $model != */* ]]; then
+    local config=${AGENT_ROLES_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/agent-roles/config.json}
+    model=$(jq -r --arg p "$model" '.presets[$p] // $p' "$config" 2>/dev/null || print -r -- "$model")
+  fi
   [[ -n $model ]] && args+=(--model "$model")
   if [[ -s $prompt ]]; then
     case $kind in

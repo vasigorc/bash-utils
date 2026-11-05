@@ -121,11 +121,35 @@ When the task ends:
 2. If an entry is `open` or `failed`, tell the user. Do not undo it yourself.
 3. Keep both files until the user says that the request is done.
 
+## Models
+
+Each role starts on the preset of its role file. You choose when a role
+needs another model. The user can always tell you which model to use.
+
+- Use `--preset auto` (a model router) for routine tasks, when the config
+  has an `auto` preset. For all roles that are not pinned, run the starts
+  with `AGENT_ROLES_PRESET=auto`.
+- Give a task that is hard, or that failed two times, to a stronger model:
+  `agent-role --set-model <name> strong`. The agent keeps its context. If
+  the agent is stuck, or `--set-model` fails, use
+  `agent-role --restart <name> --preset strong`.
+- **The reviewer uses another model family.** It must not check work with
+  the family that made it: not the family of dev, and not your family. Do
+  not use `--force` to change a pinned reviewer, unless the user tells you
+  to. After each model change, run `agent-role --models`. If it prints a
+  warning, tell the user.
+- Tell the user in your report which model each agent used. For a router,
+  give the `reply` model of `--models`.
+
 ## Commands
 
 | Step | Command |
 |---|---|
-| Start | `agent-role <role>`, which prints `{"name", "pane", "model"}` |
+| Start | `agent-role <role>`, which prints `{"name", "role", "pane", "preset", "model"}` |
+| Start on another model | `agent-role <role> --preset <preset>` |
+| Switch the model | `agent-role --set-model <name> <preset>` |
+| Start again, same session | `agent-role --restart <name> [--preset <preset>]` |
+| Models of the tab | `agent-role --models` |
 | Give a task and wait | `agent-role --prompt <name> --wait --timeout 300000`, with the task on stdin (see below) |
 | Wait again | `herdr agent wait <name> --timeout 300000` |
 | Read result | `herdr agent read <name> --source recent-unwrapped --lines 300` |

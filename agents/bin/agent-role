@@ -3,8 +3,12 @@
 # them.
 #
 # Usage:
-#   agent-role ROLE [--name NAME] [--pane right|side|PANE_ID] [--cwd DIR] [--dry-run]
+#   agent-role ROLE [--preset PRESET [--force]] [--name NAME]
+#              [--pane right|side|PANE_ID] [--cwd DIR] [--session ID] [--dry-run]
 #   agent-role --prompt NAME [OPTION...] <<'TASK'
+#   agent-role --set-model NAME PRESET [--force]
+#   agent-role --restart NAME [--preset PRESET] [--force]
+#   agent-role --models
 #   agent-role --stop NAME [NAME...]
 #   agent-role --snapshot [DIR]
 #
@@ -13,12 +17,32 @@
 # --pane side     use the side column on the right of the tab (default for pm,
 #                 qa, reviewer). The first side agent makes the column.
 # --pane PANE_ID  use an existing pane that is at a shell prompt
-# Start prints JSON: {"name", "role", "pane", "model"}.
+# --preset PRESET use this preset, not the preset of the role. PRESET is a
+#                 name in the config, or a model as provider/id.
+# --force         allow --preset for a role in the "pinned" list of the config.
+#                 Without --preset, AGENT_ROLES_PRESET gives the preset of each
+#                 role that is not pinned.
+# --session ID    continue the role session ID in DIR (see --restart).
+# Start prints JSON: {"name", "role", "pane", "preset", "model"}.
 #
 # --prompt NAME   read a task from stdin and give it to the agent with
 #                 `herdr agent prompt`. Each OPTION (for example --wait
 #                 --timeout 300000) goes to herdr. The task is not given to a
 #                 shell, so backticks and $(...) in it stay text.
+# --set-model NAME PRESET
+#                 switch a running agent to the model of PRESET with the Pi
+#                 command /model. The session and its history stay. Prints
+#                 {"name", "preset", "model"}. An agent that has had no task
+#                 yet starts again (as --restart does).
+# --restart NAME  stop the agent and start it again in a new pane, on the
+#                 same session. With --preset, on that model. Use it when the
+#                 agent is stuck or /model is not enough.
+# --models        print one JSON line for each role agent of this tab: the
+#                 model that the agent uses, the model that gave the last
+#                 reply (a router shows the real model here), and the model
+#                 family. The last line is the orchestrator in the calling
+#                 pane, if herdr knows its session. A warning tells when the
+#                 reviewer has the family of dev or of the orchestrator.
 # --stop NAME...  stop each agent and close its pane. When the last side pane
 #                 closes, the side column goes away. An agent that is not
 #                 there (for example, its pane was closed by hand) is not an
@@ -31,6 +55,7 @@
 # Environment:
 #   AGENT_ROLES_CONFIG  machine config (default ~/.config/agent-roles/config.json)
 #   AGENT_ROLES_DIR     role files (default: ../roles next to this script)
+#   AGENT_ROLES_PRESET  preset for roles that are not pinned, when no --preset
 #   AGENT_ROLES_PI_DIR  Pi agent dir of role agents
 #                       (default ~/.local/state/agent-roles/pi-agent)
 #
@@ -51,6 +76,10 @@ cache=${XDG_CACHE_HOME:-$HOME/.cache}/agent-roles
 agent_dir=${AGENT_ROLES_PI_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/agent-roles/pi-agent}
 user_dir=${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}
 [[ $user_dir != "$agent_dir" ]] || user_dir=$HOME/.pi/agent
+# One JSON file for each running role agent: role, preset, model, session.
+meta=$agent_dir/role-agents
+self=${HERDR_PANE_ID:-}
+tab=${HERDR_TAB_ID:-}
 
 die() { echo "agent-role: $*" >&2; exit 1; }
 usage() { sed -n '2,/^set -euo/{/^set -euo/d;s/^# \{0,1\}//;p;}' "${BASH_SOURCE[0]}"; exit "${1:-0}"; }
@@ -65,11 +94,13 @@ stop_agent() {
   if ! out=$(herdr agent get "$name" 2>&1); then
     [[ $(jq -r '.error.code? // empty' <<<"$out" 2>/dev/null) == agent_not_found ]] ||
       die "cannot stop $name: $out"
+    rm -f "$meta/$name.json"
     jq -nc --arg name "$name" '{stopped: $name, note: "no such agent, nothing to stop"}'
     return 0
   fi
   pane=$(jq -er '.result.agent.pane_id' <<<"$out") || die "no pane for agent: $name"
   herdr pane close "$pane" >/dev/null
+  rm -f "$meta/$name.json"
   jq -nc --arg name "$name" --arg pane "$pane" '{stopped: $name, closed_pane: $pane}'
 }
 
@@ -101,7 +132,251 @@ snapshot() { # [dir]
   GIT_INDEX_FILE=$tmp_index git -C "$top" write-tree
 }
 
-role="" name="" where="" cwd=$PWD dry=0
+# Frontmatter value for key $1, or empty.
+fm() { awk -v k="$1" 'NR==1 && /^---$/ {f=1; next} f && /^---$/ {exit}
+  f && index($0, k ":") == 1 {sub("^" k ":[ \t]*", ""); print; exit}' "$file"; }
+# Role body without frontmatter.
+body() { awk 'NR==1 && /^---$/ {f=1; next} f==1 && /^---$/ {f=2; next} f!=1' "$file"; }
+
+need_herdr() {
+  [[ ${HERDR_ENV:-} == 1 && -n $self && -n $tab ]] || die "run this inside a herdr pane"
+}
+
+# The model of a preset: a name in the config, or provider/id as it is.
+resolve_model() {
+  [[ -f $config ]] || die "no config: $config (run agents/install.sh)"
+  if [[ $1 == */* ]]; then printf '%s\n' "$1"; return; fi
+  jq -er --arg p "$1" '.presets[$p] // empty' "$config" ||
+    die "preset '$1' is not in $config"
+}
+
+# A model without a thinking level at the end (provider/id:high).
+bare_model() {
+  case ${1##*:} in
+    off | minimal | low | medium | high | xhigh | max) printf '%s\n' "${1%:*}" ;;
+    *) printf '%s\n' "$1" ;;
+  esac
+}
+
+# The -e options for the extensions of the config, in the global exts.
+load_exts() {
+  local e
+  exts=()
+  while IFS= read -r e; do
+    [[ -n $e ]] && exts+=(-e "${e/#\~/$HOME}")
+  done < <(jq -r '(.extensions // [])[]' "$config")
+}
+
+# Stop unless Pi can use the model. Pi lists only the models that it has a
+# key for. A role agent that cannot get its model does not start, and /model
+# opens a model list that waits for a person. Ask the Pi of the role agent:
+# the same agent dir, extensions and cwd (a provider can come from each).
+check_model() { # model cwd
+  local m out
+  m=$(bare_model "$1")
+  load_exts
+  out=$(cd "$2" && PI_CODING_AGENT_DIR=$agent_dir pi ${exts[@]+"${exts[@]}"} \
+    --list-models "${m#*/}" 2>/dev/null || true)
+  awk -v p="${m%%/*}" -v m="${m#*/}" '$1 == p && $2 == m {f = 1} END {exit !f}' <<<"$out" ||
+    die "Pi cannot use the model $m (see: pi --list-models)"
+}
+
+# True when the role is in the "pinned" list of the config.
+pinned() {
+  jq -e --arg r "$1" '(.pinned // []) | index($r) != null' "$config" >/dev/null
+}
+
+# Stop when the role keeps its preset, unless --force was given.
+check_pin() {
+  ((force)) && return
+  if pinned "$1"; then
+    die "$1 keeps its preset (\"pinned\" in $config). Add --force to change it."
+  fi
+}
+
+# The model family, from the model name. Empty when it is not known, for
+# example for a router. Then the model of the last reply tells the family.
+family() {
+  case $(tr '[:upper:]' '[:lower:]' <<<"$1") in
+    *claude*) echo anthropic ;;
+    *gpt* | */o[0-9]*) echo openai ;;
+    *gemini* | *gemma*) echo google ;;
+    *deepseek*) echo deepseek ;;
+    *glm*) echo zhipu ;;
+    *kimi*) echo moonshot ;;
+    *qwen*) echo qwen ;;
+    *llama*) echo meta ;;
+    *mistral* | *devstral* | *codestral*) echo mistral ;;
+    *grok*) echo xai ;;
+  esac
+}
+
+# The file of a role session. Pi writes it after the first reply.
+session_file() {
+  find "$agent_dir/sessions" -name "*_$1.jsonl" -print -quit 2>/dev/null || true
+}
+
+# One JSON line for each role agent of this tab that herdr knows. A state
+# file of an agent that is gone is removed.
+tab_models() {
+  local st name f fam
+  for st in "$meta"/*.json; do
+    [[ -e $st ]] || continue
+    [[ $(jq -r .tab "$st") == "$tab" ]] || continue
+    name=$(jq -r .name "$st")
+    herdr agent get "$name" >/dev/null 2>&1 || { rm -f "$st"; continue; }
+    f=$(session_file "$(jq -r .session "$st")")
+    jq -s -c --slurpfile st "$st" '$st[0] as $a
+      | ([.[($a.skip // 0):][] | select(.type == "model_change")] | last) as $c
+      | ([.[] | select(.type == "message" and .message.role == "assistant")]
+        | last | .message) as $r
+      | {name: $a.name, role: $a.role, preset: $a.preset,
+        model: (if $c then "\($c.provider)/\($c.modelId)" else $a.model end),
+        reply: (if $r then "\($r.provider)/\($r.responseModel // $r.model)"
+          else null end)}' "${f:-/dev/null}" |
+      while IFS= read -r line; do
+        fam=$(family "$(jq -r .model <<<"$line")")
+        [[ -n $fam ]] || fam=$(family "$(jq -r '.reply // ""' <<<"$line")")
+        jq -c --arg f "$fam" '. + {family: (if $f == "" then null else $f end)}' <<<"$line"
+      done
+  done
+  orchestrator_model
+}
+
+# One JSON line for the agent in the calling pane (the orchestrator), with the
+# model of its last reply. Pi and Claude Code both keep it in .message of the
+# session file that herdr knows. Nothing when herdr does not know a file.
+orchestrator_model() {
+  local a f m fam
+  a=$(herdr agent list 2>/dev/null |
+    jq -c --arg p "$self" '.result.agents[]? | select(.pane_id == $p)' 2>/dev/null |
+    head -n 1 || true)
+  [[ -n $a ]] || return 0
+  f=$(jq -r 'select(.agent_session.kind == "path") | .agent_session.value // empty' <<<"$a")
+  [[ -n $f && -f $f ]] || return 0
+  # The model is the last model change (Pi). A reply whose request started
+  # after it names the model instead: Pi does not record a --model on resume.
+  # A reply that started before the change (it was in flight) does not count.
+  # Claude Code has no model changes: its last reply names the model. `reply`
+  # is the model that gave the last reply (for a router, the real model).
+  m=$(tail -n 200 "$f" | jq -sc '
+    def ms: if type == "number" then .
+      elif type == "string" then
+        (capture("^(?<s>[^.]*)(\\.(?<f>[0-9]+))?Z$")
+          | ((.s + "Z") | fromdate) * 1000 + ((.f // "0")[0:3] | tonumber))? // 0
+      else 0 end;
+    def reply: .type == "assistant" or (.type == "message" and .message.role == "assistant");
+    ([.[] | select(.type == "model_change")] | last
+      | if . then {conf: "\(.provider)/\(.modelId)", t: (.timestamp | ms)} else null end) as $c
+    | ([.[] | select(reply)] | last | if . then {
+        conf: ((if .message.provider then "\(.message.provider)/" else "" end) + .message.model),
+        real: (.message.responseModel // .message.model),
+        t: ((.message.timestamp // .timestamp) | ms)} else null end) as $r
+    | (if $c and ($r == null or $r.t <= $c.t) then $c.conf
+      elif $r then $r.conf else null end) as $m
+    | select($m != null) | {model: $m, reply: (if $r then $r.real else null end)}' \
+    2>/dev/null || true)
+  [[ -n $m ]] || return 0
+  fam=$(family "$(jq -r .model <<<"$m")")
+  [[ -n $fam ]] || fam=$(family "$(jq -r '.reply // ""' <<<"$m")")
+  jq -c --arg n "$(jq -r '.name // "orchestrator"' <<<"$a")" --arg f "$fam" \
+    '{name: $n, role: "orchestrator", model, reply,
+      family: (if $f == "" then null else $f end)}' <<<"$m"
+}
+
+# Warn when the reviewer has the model family of the agents that make the
+# work: dev and the orchestrator. qa and pm can share its family.
+warn_families() {
+  jq -rs '(map(select(.role == "reviewer" and .family != null))) as $rev
+    | $rev[] as $r | .[]
+    | select((.role == "dev" or .role == "orchestrator") and .family == $r.family)
+    | "agent-role: warning: \($r.name) and \(.name) both use \(.family) models. The reviewer should use another family."' >&2
+}
+
+# Switch a running agent to another model with the Pi command /model.
+set_model() { # name preset
+  local name=$1 st=$meta/$1.json role model m i f n0
+  need_herdr
+  [[ -f $st ]] || die "no role agent $name (agent-role --models lists them)"
+  herdr agent get "$name" >/dev/null 2>&1 || die "agent $name is not running"
+  role=$(jq -r .role "$st")
+  model=$(resolve_model "$2")
+  file=$roles_dir/$role.md
+  [[ -f $file && $2 == "$(fm preset)" ]] || check_pin "$role"
+  check_model "$model" "$(jq -r .cwd "$st")"
+  m=$(bare_model "$model")
+  # Pi writes the session file when the agent gets its first task. With no
+  # file, the agent has no context to keep, and Pi gives no proof of a switch
+  # (the pane status can show the same line again). Start it again instead.
+  f=$(session_file "$(jq -r .session "$st")")
+  if [[ -z $f ]]; then
+    echo "agent-role: note: $name has had no task yet. It starts again on $2." >&2
+    if ((force)); then restart "$name" --preset "$2" --force; fi
+    restart "$name" --preset "$2"
+  fi
+  # The proof of the switch: a new model change to provider/id in the session.
+  n0=$(model_changes "$f")
+  # Pi runs /model at once, also while the agent works.
+  herdr agent prompt "$name" "/model $m" >/dev/null
+  # Pi can take 15 s to refresh its model lists before it switches. Wait 20 s
+  # (AGENT_ROLES_SWITCH_TRIES times 0.2 s; the tests make it short).
+  local tries=${AGENT_ROLES_SWITCH_TRIES:-100}
+  for ((i = 1; ; i++)); do
+    (($(model_changes "$f") > n0)) && [[ $(last_model_change "$f") == "$m" ]] && break
+    ((i < tries)) || die "$name did not switch to $m in $((tries / 5)) s. Read its pane: a model list can wait for input. Or run: agent-role --restart $name --preset $2"
+    sleep 0.2
+  done
+  # /model does not take a thinking level. Give it with /thinking.
+  [[ $m == "$model" ]] || herdr agent prompt "$name" "/thinking ${model##*:}" >/dev/null
+  jq --arg p "$2" --arg m "$model" '.preset = $p | .model = $m' "$st" >"$st.tmp"
+  mv "$st.tmp" "$st"
+  {
+    jq -nc --arg n "$name" --arg p "$2" --arg m "$model" '{name: $n, preset: $p, model: $m}'
+    tab_models | warn_families
+  }
+}
+
+# The number of model changes in a session file, and the last one.
+model_changes() {
+  [[ -n $1 ]] || { echo 0; return; }
+  jq -s '[.[] | select(.type == "model_change")] | length' "$1" 2>/dev/null || echo 0
+}
+last_model_change() {
+  jq -rs '[.[] | select(.type == "model_change")] | last
+    | "\(.provider)/\(.modelId)"' "$1" 2>/dev/null || true
+}
+
+
+# Stop an agent and start it again in a new pane on the same session.
+restart() { # name [start option...]
+  local name=$1 st=$meta/$1.json role preset want="" saved
+  need_herdr
+  [[ -f $st ]] || die "no role agent $name (agent-role --models lists them)"
+  shift
+  saved=$(cat "$st")
+  role=$(jq -r .role <<<"$saved")
+  preset=$(jq -r .preset <<<"$saved")
+  while (($#)); do
+    case $1 in
+      --preset) [[ $# -ge 2 ]] || usage 1; want=$2; shift 2 ;;
+      --force) force=1; shift ;;
+      *) die "--restart takes only --preset and --force" ;;
+    esac
+  done
+  # Check the new model before the old agent stops.
+  if [[ -n $want ]]; then
+    file=$roles_dir/$role.md
+    [[ $want == "$preset" || $want == "$(fm preset)" ]] || check_pin "$role"
+    preset=$want
+  fi
+  check_model "$(resolve_model "$preset")" "$(jq -r .cwd <<<"$saved")"
+  stop_agent "$name" >/dev/null
+  exec "${BASH_SOURCE[0]}" "$role" --name "$name" --pane "$(jq -r .where <<<"$saved")" \
+    --cwd "$(jq -r .cwd <<<"$saved")" --session "$(jq -r .session <<<"$saved")" \
+    --preset "$preset" --force
+}
+
+role="" name="" where="" cwd=$PWD dry=0 preset_opt="" force=0 session=""
 while (($#)); do
   case $1 in
     -h | --help) usage ;;
@@ -118,6 +393,24 @@ while (($#)); do
       [[ $# -le 2 ]] || usage 1
       snapshot "${2:-.}"
       exit ;;
+    --set-model)
+      [[ $# -ge 3 ]] || usage 1
+      [[ ${4:-} == --force ]] && force=1
+      set_model "$2" "$3"
+      exit ;;
+    --restart)
+      [[ $# -ge 2 ]] || usage 1
+      shift
+      restart "$@" ;;
+    --models)
+      need_herdr
+      out=$(tab_models)
+      [[ -z $out ]] || printf '%s\n' "$out"
+      warn_families <<<"$out"
+      exit ;;
+    --preset) preset_opt=$2; shift 2 ;;
+    --force) force=1; shift ;;
+    --session) session=$2; shift 2 ;;
     --name) name=$2; shift 2 ;;
     --pane) where=$2; shift 2 ;;
     --cwd) cwd=$2; shift 2 ;;
@@ -127,31 +420,41 @@ while (($#)); do
   esac
 done
 [[ -n $role ]] || usage 1
+cwd=$(cd "$cwd" && pwd) || die "no such directory: $cwd"
 
 file=$roles_dir/$role.md
 [[ -f $file ]] || die "no role file: $file"
 [[ -f $config ]] || die "no config: $config (run agents/install.sh)"
 
-# Frontmatter value for key $1, or empty.
-fm() { awk -v k="$1" 'NR==1 && /^---$/ {f=1; next} f && /^---$/ {exit}
-  f && index($0, k ":") == 1 {sub("^" k ":[ \t]*", ""); print; exit}' "$file"; }
-# Role body without frontmatter.
-body() { awk 'NR==1 && /^---$/ {f=1; next} f==1 && /^---$/ {f=2; next} f!=1' "$file"; }
-
 preset=$(fm preset)
 [[ -n $preset ]] || die "$role.md has no preset"
-model=$(jq -er --arg p "$preset" '.presets[$p] // empty' "$config") ||
-  die "preset '$preset' is not in $config"
+if [[ -z $preset_opt && -n ${AGENT_ROLES_PRESET:-} ]]; then
+  if pinned "$role"; then
+    echo "agent-role: note: $role keeps its preset $preset (pinned)." \
+      "AGENT_ROLES_PRESET is not used." >&2
+  else
+    preset_opt=$AGENT_ROLES_PRESET
+  fi
+fi
+if [[ -n $preset_opt && $preset_opt != "$preset" ]]; then
+  check_pin "$role"
+  preset=$preset_opt
+fi
+model=$(resolve_model "$preset")
 tools=$(fm tools | tr -d ' ')
 extra=$(jq -r --arg r "$role" '(.extraTools[$r] // []) | join(",")' "$config")
 [[ -n $extra ]] && tools=${tools:+$tools,}$extra
 where=${where:-$(fm pane)}
 where=${where:-right}
 
-exts=()
-while IFS= read -r e; do
-  [[ -n $e ]] && exts+=(-e "${e/#\~/$HOME}")
-done < <(jq -r '(.extensions // [])[]' "$config")
+load_exts
+
+# One name prefix per tab: the tab id in lower case, with ":" as "-" (wT:t2
+# -> wt-t2). Agent names allow only letters, digits, "_" and "-". The hw and
+# ht orchestrator uses the same prefix.
+prefix=${tab:-w}
+prefix=$(printf "%s" "${prefix//:/-}" | tr "[:upper:]" "[:lower:]")
+name=${name:-$prefix-$role}
 
 # One prompt file: base rules, then the role. The writing style applies only
 # to the orchestrator (see hw), so it is not in role prompts.
@@ -166,6 +469,13 @@ prompt=$cache/$role.md
 # job (see the header), with and without such an install.
 args=(${exts[@]+"${exts[@]}"} --model "$model" --append-system-prompt "$prompt")
 [[ -n $tools ]] && args+=(--tools "$tools")
+# agent-role names the session, so it can find the session file later. Pi
+# opens the session with this id in the cwd, or makes a new one. A new id
+# makes Pi print a warning before it starts: no session has the id yet.
+session=${session:-$name-$(date +%Y%m%d%H%M%S)}
+[[ $session =~ ^[A-Za-z0-9]([A-Za-z0-9._-]*[A-Za-z0-9])?$ ]] ||
+  die "a session id has only letters, digits, '.', '_' and '-': $session"
+args+=(--session-id "$session")
 
 # Make the role agent dir ready. Run it before each start, so changes in your
 # own dir show up in the next role agent.
@@ -226,15 +536,6 @@ warn_project_extensions() {
   done
 }
 
-self=${HERDR_PANE_ID:-}
-tab=${HERDR_TAB_ID:-}
-# One name prefix per tab: the tab id in lower case, with ":" as "-" (wT:t2
-# -> wt-t2). Agent names allow only letters, digits, "_" and "-". The hw and
-# ht orchestrator uses the same prefix.
-prefix=${tab:-w}
-prefix=$(printf "%s" "${prefix//:/-}" | tr "[:upper:]" "[:lower:]")
-name=${name:-$prefix-$role}
-
 if ((dry)); then
   echo "pane env: PI_CODING_AGENT_DIR=$agent_dir"
   printf '%q ' herdr agent start "$name" --kind pi --pane "<$where>" -- "${args[@]}"
@@ -248,6 +549,12 @@ if herdr agent get "$name" >/dev/null 2>&1; then
 fi
 
 prepare_agent_dir
+check_model "$model" "$cwd"
+# Pi does not record a --model that it gets on resume, so the session can name
+# an old model. Only a model change after the lines that are there now is
+# newer than the state file.
+skip=0
+if f=$(session_file "$session") && [[ -n $f ]]; then skip=$(wc -l <"$f" | tr -d ' '); fi
 warn_project_extensions
 
 # A new pane gets the role agent dir in its environment.
@@ -386,5 +693,17 @@ for _ in {1..30}; do
   sleep 0.5
 done
 [[ $out != *'"error"'* ]] || start_failed "$out"
-jq -n --arg name "$name" --arg role "$role" --arg pane "$pane" --arg model "$model" \
-  '{name: $name, role: $role, pane: $pane, model: $model}'
+# A pane that was given by id is gone after a restart: keep its kind.
+case $where in
+  right | side) ;;
+  *) if [[ -n $label_prefix ]]; then where=side; else where=right; fi ;;
+esac
+mkdir -p "$meta"
+jq -n --arg name "$name" --arg role "$role" --arg preset "$preset" --arg model "$model" \
+  --arg pane "$pane" --arg where "$where" --arg cwd "$cwd" --arg session "$session" \
+  --arg tab "$tab" --argjson skip "$skip" \
+  '{$name, $role, $preset, $model, $pane, $where, $cwd, $session, $tab, $skip}' \
+  >"$meta/$name.json"
+tab_models | warn_families
+jq -n --arg name "$name" --arg role "$role" --arg pane "$pane" --arg preset "$preset" \
+  --arg model "$model" '{name: $name, role: $role, pane: $pane, preset: $preset, model: $model}'

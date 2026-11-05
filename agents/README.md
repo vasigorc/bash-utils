@@ -11,9 +11,10 @@ agents are always Pi.
 | `roles/_base.md` | Rules that every role agent gets |
 | `roles/{dev,reviewer,qa,pm}.md` | One role each: frontmatter (`preset`, `tools`, `pane`) and a prompt |
 | `roles/config.example.json` | Example machine config: preset models, extensions, extra tools |
-| `bin/agent-role` | Starts and stops role agents in herdr panes, gives them tasks on stdin, and takes snapshots of the work tree |
+| `bin/agent-role` | Starts, stops and restarts role agents in herdr panes, changes their models, gives them tasks on stdin, and takes snapshots of the work tree |
 | `install.sh` | Links the tools into your home directory |
 | `test/scratch-repo.sh` | Makes a tiny repo to test the setup |
+| `test/*-labels.sh`, `test/presets-and-models.sh` | Tests of `agent-role` and `hw` with a stub herdr and a stub pi |
 | `pi/settings.json` | Portable Pi settings (see `pi/README.md`) |
 
 The project's `AGENTS.md` names the checks, the VCS and forge tools, and the
@@ -51,7 +52,11 @@ It also copies `roles/config.example.json` to
 the machine:
 
 - `presets`: the model for each preset (`coder`, `strong`, `critic`). Keep
-  `critic` in a different model family from `coder`.
+  `critic` in a different model family from `coder`. You can add more
+  presets, for example `auto` for a model router of your provider. See
+  [Models](#models).
+- `pinned`: roles that keep the preset of their role file, for example
+  `["reviewer"]`. To change the preset of a pinned role, add `--force`.
 - `extensions`: the extensions that role agents load, with `-e`. Keep
   `herdr-agent-state.ts` so that herdr can see the agent state. Add the
   extensions that your model providers need. Do not add an extension that
@@ -62,6 +67,39 @@ the machine:
   `{"qa": ["chrome_navigate_page"]}`.
 
 To remove the links: `agents/install.sh --uninstall`. The config stays.
+
+## Models
+
+Each role file names a preset. The config gives the model of each preset.
+To use another model, give a preset name or a `provider/id`:
+
+| Command | What it does |
+|---|---|
+| `agent-role dev --preset strong` | Starts dev on the `strong` model |
+| `AGENT_ROLES_PRESET=auto agent-role dev` | Starts each role that is not pinned on `auto` |
+| `agent-role --set-model NAME strong` | Switches a running agent with the Pi command `/model`. The session stays. This works also while the agent works: the next model request uses the new model. An agent that has had no task yet starts again in a new pane, as with `--restart`, and the command prints the new start |
+| `agent-role --restart NAME --preset strong` | Stops the agent and starts it again on the same session, in a new pane. Use it when the agent is stuck |
+| `agent-role --models` | Shows the model of each role agent of the tab and of the orchestrator |
+| `hw -m strong` | Starts a Pi orchestrator on the `strong` model |
+
+agent-role stops before it makes a pane when Pi cannot use the model, for
+example when no key for its provider is set. On a machine whose config has
+no `auto` preset, `--preset auto` stops with an error.
+
+A router picks the model for each request. `--models` shows the model of
+the last reply in `reply`, so you can see which model the router used.
+
+The reviewer must not check work with the model family that made it.
+`--models`, `--set-model` and each start print a warning when the reviewer
+has the family of dev or of the orchestrator of the tab. Put
+`reviewer` in `pinned`, so that `AGENT_ROLES_PRESET` and a `--preset` by
+mistake do not change it.
+
+agent-role keeps one state file for each role agent in
+`~/.local/state/agent-roles/pi-agent/role-agents/`. `--stop` removes it.
+Each start gives the session an id (`NAME-YYYYMMDDhhmmss`), so that
+`--restart` and `--models` can find the session file. Pi prints a warning
+before it starts a session with a new id. This is normal.
 
 ## Role agent dir
 

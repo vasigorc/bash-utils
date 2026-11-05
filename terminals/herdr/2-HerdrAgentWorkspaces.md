@@ -67,6 +67,7 @@ current workspace. Both take the same options and arguments.
 hw                              # current directory, Pi orchestrator
 hw ~/src/my-project my-project  # directory and label
 hw -o claude -m sonnet          # Claude Code orchestrator on Sonnet
+hw -m strong                    # Pi orchestrator on the strong preset
 hw -h                           # usage
 ht                              # the same, in a new tab of this workspace
 ```
@@ -153,6 +154,10 @@ The orchestrator then also sees the new agent's name.
 |---|---|
 | Start a role agent | `agent-role dev` (or `reviewer`, `qa`, `pm`) |
 | Preview the start command | `agent-role dev --dry-run` |
+| Start on another preset | `agent-role dev --preset strong` |
+| Switch a running agent to another model | `agent-role --set-model w4-t1-dev strong` |
+| Start an agent again on its session | `agent-role --restart w4-t1-dev [--preset strong]` |
+| Show the models of the tab | `agent-role --models` |
 | Stop role agents and close their panes | `agent-role --stop w4-t1-dev w4-t1-reviewer` |
 | List agents | `herdr agent list` |
 | Show one agent | `herdr agent get w4-t1-dev` |
@@ -226,6 +231,10 @@ the work back:
 | The side column looks wrong | The column is built for the `hw` and `ht` layout: one pane at the top, one row below. | Close the side panes, then start the side agent again. |
 | A role agent does not have a tool | Pi ignores a tool name that does not exist. | Check the names in the role file and in `extraTools`. |
 | A role agent cannot find its model | Role agents have their own Pi agent dir, so only the configured extensions load. | Add the provider's extension to `extensions` in the config. |
+| `Pi cannot use the model ...` | `pi --list-models` in the role agent dir does not show the model, for example because its provider has no key. agent-role stops before it makes a pane. | Use another preset, or set up the provider. |
+| `<role> keeps its preset ("pinned" ...)` | The role is in `pinned` in the config. | Use the role's own preset. Add `--force` only if you are sure. |
+| `<name> did not switch to <model> in 20 s` | The session got no new model change after `/model`. Pi can show a model list that waits for input. | Read the pane. Use `agent-role --restart <name> --preset <preset>`. |
+| `warning: ... both use <family> models` | The reviewer has the model family of dev or of the orchestrator of the tab. | Switch the reviewer back to its own preset, or the other agent to another family. |
 | `agent start failed ... Pi exited before it was ready` | Pi stopped at startup. `agent-role` prints the last lines of the pane, and closes the pane if it made it. | Read the error in those lines, for example a model that is not there. |
 | A pane does not see a variable | Panes get their environment from the herdr server. `workspace create --env` reaches only the first pane. | Export the variable in that pane, or restart the herdr server from a shell that has it. |
 
