@@ -4,7 +4,8 @@
 #
 # Usage:
 #   agent-role ROLE [--chat] [--focus] [--preset PRESET [--force]] [--name NAME]
-#              [--pane right|side|PANE_ID] [--cwd DIR] [--session ID] [--dry-run]
+#              [--pane right|down|up|left|side|PANE_ID] [--cwd DIR] [--session ID]
+#              [--dry-run]
 #   agent-role --prompt NAME [OPTION...] <<'TASK'
 #   agent-role --set-model NAME PRESET [--force]
 #   agent-role --restart NAME [--preset PRESET] [--force]
@@ -14,6 +15,11 @@
 #
 # ROLE is a file in the roles directory (dev, reviewer, qa, pm).
 # --pane right    split right of the calling pane (default for dev)
+# --pane down     split below the calling pane
+# --pane up       split above the calling pane
+# --pane left     split left of the calling pane
+#                 (herdr splits only right and down. For up and left the new
+#                 pane and the calling pane swap places.)
 # --pane side     use the side column on the right of the tab (default for pm,
 #                 qa, reviewer). The first side agent makes the column.
 # --pane PANE_ID  use an existing pane that is at a shell prompt
@@ -603,7 +609,9 @@ move_next_to() { # pane target direction
 # herdr splits panes, not tabs. So split the top-left pane to the right, then
 # move the panes of the lower row under the top-left pane, left to right.
 # This fits the hw layout. When the last side pane closes, the layout returns
-# to its first shape.
+# to its first shape. A pane that you added below the orchestrator with
+# --pane down joins that row when the first side agent starts (checked with
+# herdr 0.9.3): the row is then flat, left to right.
 new_side_column() {
   local layout anchor side prev dir p
   layout=$(herdr pane layout --pane "$self")
@@ -619,7 +627,13 @@ new_side_column() {
 
 label_prefix="" new=1
 case $where in
-  right) pane=$(split "$self" right) ;;
+  right | down) pane=$(split "$self" "$where") ;;
+  up | left)
+    # herdr splits only right and down. Split, then swap the two panes. The
+    # calling pane keeps its process and its focus.
+    pane=$(split "$self" "$(if [[ $where == up ]]; then echo down; else echo right; fi)")
+    herdr pane swap --source-pane "$self" --target-pane "$pane" >/dev/null
+    ;;
   side)
     sides=$(side_panes)
     # Reuse a side pane whose agent has exited.
@@ -718,7 +732,7 @@ done
 [[ $out != *'"error"'* ]] || start_failed "$out"
 # A pane that was given by id is gone after a restart: keep its kind.
 case $where in
-  right | side) ;;
+  right | down | up | left | side) ;;
   *) if [[ -n $label_prefix ]]; then where=side; else where=right; fi ;;
 esac
 mkdir -p "$meta"

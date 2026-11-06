@@ -29,7 +29,7 @@ Run it inside herdr.
 | `bin/agent-role` | Starts, stops and restarts role agents in herdr panes, changes their models, gives them tasks on stdin, and takes snapshots of the work tree |
 | `install.sh` | Links the tools into your home directory |
 | `test/scratch-repo.sh` | Makes a tiny repo to test the setup |
-| `test/*-labels.sh`, `test/presets-and-models.sh`, `test/chat-mode.sh`, `test/talk-helper.sh` | Tests of `agent-role` and `hw` with a stub herdr and a stub pi |
+| `test/*-labels.sh`, `test/presets-and-models.sh`, `test/chat-mode.sh`, `test/pane-placement.sh`, `test/talk-helper.sh` | Tests of `agent-role` and `hw` with a stub herdr and a stub pi |
 | `pi/settings.json` | Portable Pi settings (see `pi/README.md`) |
 
 The project's `AGENTS.md` names the checks, the VCS and forge tools, and the

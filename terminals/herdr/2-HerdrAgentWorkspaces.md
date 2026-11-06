@@ -152,6 +152,22 @@ talks like a normal chat. It does not end with a `STATUS:` line, and it does
 not use its report format unless you ask for it. Its limits stay: it does not
 commit, push or open PRs unless you tell it to.
 
+Choose where the pane opens with `--pane`. `talk pm --pane down` works too:
+
+| `--pane` | Where the new pane opens |
+|---|---|
+| `right` | Right of the pane that runs the command (default for dev) |
+| `down`, `up`, `left` | Below, above, or left of that pane |
+| `side` | In the side column (default for pm, qa and reviewer) |
+| `PANE_ID` | In that pane, if it is at a shell prompt |
+
+herdr splits only right and down. For `up` and `left`, `agent-role` splits and
+then swaps the new pane with the calling pane. Your pane keeps its process and
+its focus. A restart repeats the placement.
+
+If you added a pane with `down` and a side agent starts afterwards, the lower
+panes join into one row, left to right, when the side column appears.
+
 Chat mode is also in `agent-role`: `--chat` for the mode, `--focus` for the
 focus. A chat agent and a task agent of the same role can run in one tab if
 you give them different names (`--name`). `agent-role --restart` keeps chat
