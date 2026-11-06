@@ -35,6 +35,12 @@ printf 'env=%s tab=%s pane=%s args=%s\n' "${HERDR_ENV:-}" "${HERDR_TAB_ID:-}" \
 STUB
 chmod +x "$tmp/bin/herdr" "$tmp/bin/agent-role"
 
+# hw resolves DIR to a real path. Run from another directory than DIR, so a
+# missing --cwd shows: agent-role would use the caller directory.
+dir=$(cd "$tmp" && pwd -P)
+mkdir -p "$tmp/elsewhere"
+cd "$tmp/elsewhere"
+
 failures=0
 pass() { echo "PASS: $1"; }
 fail() { echo "FAIL: $1"; echo "-- herdr:"; cat "$HERDR_LOG"; echo "-- agent-role:"; cat "$AR_LOG"; failures=$((failures + 1)); }
@@ -44,7 +50,7 @@ helper() { zsh -f -c 'source "$1"; shift; "$@"' _ "$root/terminals/herdr/herdr.z
 # hw -r pm, outside herdr (HERDR_ENV unset): agent-role gets the new tab.
 : >"$HERDR_LOG" >"$AR_LOG"
 (unset HERDR_ENV; helper hw -r pm "$tmp" >/dev/null)
-[[ $(cat "$AR_LOG") == 'env=1 tab=wT:t2 pane=wT:p1J args=pm --chat --focus --pane wT:p1J' ]] &&
+[[ $(cat "$AR_LOG") == "env=1 tab=wT:t2 pane=wT:p1J args=pm --chat --focus --pane wT:p1J --cwd $dir" ]] &&
   pass 'hw -r starts the role in chat mode in the new tab, outside herdr' || fail 'hw -r outside herdr'
 grep -qx 'run wT:p1 nvim' "$HERDR_LOG" && pass 'nvim runs on top' || fail 'nvim on top'
 ! grep -q '^start' "$HERDR_LOG" && pass 'no orchestrator starts' || fail 'orchestrator started'
@@ -55,13 +61,13 @@ grep -qx 'run wT:p1 nvim' "$HERDR_LOG" && pass 'nvim runs on top' || fail 'nvim 
 # Inside another tab: the env override still points agent-role at the new tab.
 : >"$HERDR_LOG" >"$AR_LOG"
 HERDR_ENV=1 HERDR_TAB_ID=other:t9 HERDR_PANE_ID=other:p9 helper hw --role qa "$tmp" >/dev/null
-[[ $(cat "$AR_LOG") == 'env=1 tab=wT:t2 pane=wT:p1J args=qa --chat --focus --pane wT:p1J' ]] &&
+[[ $(cat "$AR_LOG") == "env=1 tab=wT:t2 pane=wT:p1J args=qa --chat --focus --pane wT:p1J --cwd $dir" ]] &&
   pass 'the caller tab does not leak to agent-role' || fail 'caller tab leaked'
 
 # -m becomes --preset.
 : >"$HERDR_LOG" >"$AR_LOG"
 HERDR_ENV=1 helper hw -m strong -r pm "$tmp" >/dev/null
-[[ $(cat "$AR_LOG") == *'args=pm --chat --focus --pane wT:p1J --preset strong' ]] &&
+[[ $(cat "$AR_LOG") == *'args=pm --chat --focus --pane wT:p1J --cwd '"$dir"' --preset strong' ]] &&
   pass '-m with -r is --preset' || fail '-m with -r'
 
 # ht -r works the same, in the current workspace.

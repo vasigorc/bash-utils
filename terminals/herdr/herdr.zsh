@@ -157,8 +157,10 @@ EOF
     # needs HERDR_ENV=1. Without them it would use the caller's tab: the name
     # prefix, the side column and --models would point at the wrong tab. hw can
     # also run outside herdr, where HERDR_ENV is not set.
+    # --cwd records DIR, where the pane runs. Without it agent-role records the
+    # directory that you run hw from, and --restart opens the agent there.
     HERDR_ENV=1 HERDR_TAB_ID=$tab HERDR_PANE_ID=$orch agent-role $role --chat --focus \
-      --pane $orch ${model:+--preset $model} >/dev/null ||
+      --pane $orch --cwd "$dir" ${model:+--preset $model} >/dev/null ||
       { print -u2 "$cmd: could not start $role in $tab (see above)"; return 1 }
     [[ ${HERDR_ENV:-} == 1 ]] ||
       print "$cmd: $label ($tab) is ready. Open herdr to see it."
