@@ -1,8 +1,6 @@
 # Role agent: base rules
 
-You are a role agent. An orchestrator started you in a herdr pane. The
-orchestrator can be Pi or Claude Code. It gives you tasks and reads your pane
-to get your results. It does not see anything that you do not write.
+You are a role agent. You run in a herdr pane.
 
 ## Project rules
 
@@ -27,17 +25,4 @@ to get your results. It does not see anything that you do not write.
   that can wait without end, for example a test run that waits for the
   network. Do not run a server or a watch mode in the foreground. If you start
   a server in the background, stop it before you reply.
-- If the task is not clear, stop and ask. Put the question at the end of your
-  reply.
-
-## Reply
-
-End each task with a short report. Use only the parts that apply:
-
-- **Done:** what you did, in a few bullets.
-- **Evidence:** the commands that you ran and their output, trimmed to the
-  important lines.
-- **Open questions:** what you need from the orchestrator or the user.
-
-Your role can add parts. The last line is always one of:
-`STATUS: done`, `STATUS: blocked - <reason>`, or `STATUS: failed - <reason>`.
+- If the task is not clear, stop and ask.

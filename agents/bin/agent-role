@@ -3,7 +3,7 @@
 # them.
 #
 # Usage:
-#   agent-role ROLE [--preset PRESET [--force]] [--name NAME]
+#   agent-role ROLE [--chat] [--focus] [--preset PRESET [--force]] [--name NAME]
 #              [--pane right|side|PANE_ID] [--cwd DIR] [--session ID] [--dry-run]
 #   agent-role --prompt NAME [OPTION...] <<'TASK'
 #   agent-role --set-model NAME PRESET [--force]
@@ -23,6 +23,11 @@
 #                 Without --preset, AGENT_ROLES_PRESET gives the preset of each
 #                 role that is not pinned.
 # --session ID    continue the role session ID in DIR (see --restart).
+# --chat          chat mode: a person talks with the agent. The prompt has no
+#                 orchestrator and no STATUS: line. A restart keeps chat mode.
+# --focus         after a successful start, focus the new pane. Without it the
+#                 focus stays where it is, so an orchestrator does not take
+#                 your focus.
 # Start prints JSON: {"name", "role", "pane", "preset", "model"}.
 #
 # --prompt NAME   read a task from stdin and give it to the agent with
@@ -372,11 +377,12 @@ restart() { # name [start option...]
   check_model "$(resolve_model "$preset")" "$(jq -r .cwd <<<"$saved")"
   stop_agent "$name" >/dev/null
   exec "${BASH_SOURCE[0]}" "$role" --name "$name" --pane "$(jq -r .where <<<"$saved")" \
+    $(jq -r 'if .chat then "--chat" else empty end' <<<"$saved") \
     --cwd "$(jq -r .cwd <<<"$saved")" --session "$(jq -r .session <<<"$saved")" \
     --preset "$preset" --force
 }
 
-role="" name="" where="" cwd=$PWD dry=0 preset_opt="" force=0 session=""
+role="" name="" where="" cwd=$PWD dry=0 preset_opt="" force=0 session="" chat=0 focus=0
 while (($#)); do
   case $1 in
     -h | --help) usage ;;
@@ -415,6 +421,8 @@ while (($#)); do
     --pane) where=$2; shift 2 ;;
     --cwd) cwd=$2; shift 2 ;;
     --dry-run) dry=1; shift ;;
+    --chat) chat=1; shift ;;
+    --focus) focus=1; shift ;;
     -*) die "unknown option: $1" ;;
     *) [[ -z $role ]] || die "give one role only"; role=$1; shift ;;
   esac
@@ -456,14 +464,29 @@ prefix=${tab:-w}
 prefix=$(printf "%s" "${prefix//:/-}" | tr "[:upper:]" "[:lower:]")
 name=${name:-$prefix-$role}
 
-# One prompt file: base rules, then the role. The writing style applies only
-# to the orchestrator (see hw), so it is not in role prompts.
+# One prompt file. Task mode: base rules, the orchestrator rules (_task.md), then
+# the role. Chat mode: base rules, the role, then the chat rules (_chat.md) last,
+# so they override the Reply section of the role. The chat file has its own name:
+# a chat and a task agent of one role can run together. The writing style
+# applies only to the orchestrator (see hw), so it is not in role prompts.
 mkdir -p "$cache"
-prompt=$cache/$role.md
-{
-  [[ -f $roles_dir/_base.md ]] && { cat "$roles_dir/_base.md"; echo; }
-  body
-} >"$prompt"
+if ((chat)); then
+  [[ -f $roles_dir/_chat.md ]] || die "no chat rules: $roles_dir/_chat.md"
+  prompt=$cache/$role.chat.md
+  {
+    [[ -f $roles_dir/_base.md ]] && { cat "$roles_dir/_base.md"; echo; }
+    body
+    echo
+    cat "$roles_dir/_chat.md"
+  } >"$prompt"
+else
+  prompt=$cache/$role.md
+  {
+    [[ -f $roles_dir/_base.md ]] && { cat "$roles_dir/_base.md"; echo; }
+    [[ -f $roles_dir/_task.md ]] && { cat "$roles_dir/_task.md"; echo; }
+    body
+  } >"$prompt"
+fi
 
 # No -ne here: some Pi installs refuse it. The role agent dir does the same
 # job (see the header), with and without such an install.
@@ -701,9 +724,10 @@ esac
 mkdir -p "$meta"
 jq -n --arg name "$name" --arg role "$role" --arg preset "$preset" --arg model "$model" \
   --arg pane "$pane" --arg where "$where" --arg cwd "$cwd" --arg session "$session" \
-  --arg tab "$tab" --argjson skip "$skip" \
-  '{$name, $role, $preset, $model, $pane, $where, $cwd, $session, $tab, $skip}' \
+  --arg tab "$tab" --argjson skip "$skip" --argjson chat "$chat" \
+  '{$name, $role, $preset, $model, $pane, $where, $cwd, $session, $tab, $skip, chat: ($chat == 1)}' \
   >"$meta/$name.json"
 tab_models | warn_families
+((!focus)) || herdr agent focus "$name" >/dev/null
 jq -n --arg name "$name" --arg role "$role" --arg pane "$pane" --arg preset "$preset" \
   --arg model "$model" '{name: $name, role: $role, pane: $pane, preset: $preset, model: $model}'
