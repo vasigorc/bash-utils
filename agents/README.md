@@ -8,15 +8,14 @@ agents are always Pi.
 | I want to… | Run |
 |---|---|
 | Work with the full team | `hw` (new workspace) or `ht` (new tab) |
-| Chat with pm or qa in this tab | `talk pm`, `talk qa` |
+| Chat with pm or qa in this tab | `agent-role pm --chat --focus` |
 | Chat with one role in a new workspace | `hw -r pm` |
-| Pick the model | `hw -m strong`, `talk qa --preset strong` |
+| Pick the model | `hw -m strong`, `agent-role qa --chat --focus --preset strong` |
 | Stop a role agent | `agent-role --stop <name>` |
 
-`talk` is a zsh function from `terminals/herdr/herdr.zsh`. It runs
-`agent-role ROLE --chat --focus`. In chat mode there is no orchestrator and no
-`STATUS:` report: you talk with the agent, and the focus moves to its pane.
-Run it inside herdr.
+In chat mode (`--chat`) there is no orchestrator and no `STATUS:` report.
+You talk with the agent. `--focus` moves the focus to its pane. Run it inside
+herdr.
 
 | Path | What it is |
 |---|---|
@@ -31,7 +30,7 @@ Run it inside herdr.
 | `pi/extensions/role-reply.ts`, `pi/extensions/orch-wake.ts` | Async replies: the role agent writes a reply file when a task ends, and the Pi orchestrator wakes up (see the herdr guide) |
 | `install.sh` | Links the tools into your home directory |
 | `test/scratch-repo.sh` | Makes a tiny repo to test the setup |
-| `test/*-labels.sh`, `test/presets-and-models.sh`, `test/chat-mode.sh`, `test/pane-placement.sh`, `test/solo-role.sh`, `test/talk-helper.sh`, `test/async-replies.sh`, `test/async-extensions.sh` | Tests of `agent-role` and `hw` with a stub herdr and a stub pi |
+| `test/*-labels.sh`, `test/presets-and-models.sh`, `test/chat-mode.sh`, `test/pane-placement.sh`, `test/solo-role.sh`, `test/async-replies.sh`, `test/async-extensions.sh` | Tests of `agent-role` and `hw` with a stub herdr and a stub pi |
 | `pi/settings.json` | Portable Pi settings (see `pi/README.md`) |
 
 The project's `AGENTS.md` names the checks, the VCS and forge tools, and the

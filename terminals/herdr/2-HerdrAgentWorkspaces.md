@@ -160,22 +160,22 @@ or the `ORCHESTRATOR.md` prompt. Only the full prompt gives them. In Pi,
 
 ## Chat with one role
 
-To talk with one role agent yourself, with no orchestrator, run `talk` in a
-shell pane of the tab:
+To talk with one role agent yourself, with no orchestrator, run
+`agent-role` with `--chat --focus` in a shell pane of the tab:
 
 ```sh
-talk pm
-talk qa --preset strong
+agent-role pm --chat --focus
+agent-role qa --chat --focus --preset strong
 ```
 
-`talk ROLE [agent-role option...]` runs `agent-role ROLE --chat --focus`. The
-agent opens in its usual pane (dev right of the pane that runs `talk`; pm, qa
-and reviewer in the side column). The focus moves to the new pane. The agent
+`--chat` starts the role in chat mode. `--focus` moves the focus to the new
+pane. The agent opens in its usual pane (dev right of the pane that runs the
+command; pm, qa and reviewer in the side column). The agent
 talks like a normal chat. It does not end with a `STATUS:` line, and it does
 not use its report format unless you ask for it. Its limits stay: it does not
 commit, push or open PRs unless you tell it to.
 
-Choose where the pane opens with `--pane`. `talk pm --pane down` works too:
+Choose where the pane opens with `--pane`. `agent-role pm --chat --focus --pane down` works too:
 
 | `--pane` | Where the new pane opens |
 |---|---|
@@ -203,7 +203,7 @@ The lower pane runs the role in chat mode. The agent is named like any other
 agent of the tab: in tab `w4:t2`, `hw -r pm` gives `w4-t2-pm`. Stop it with
 `agent-role --stop w4-t2-pm`. `-o claude` does not work with `-r`, because role
 agents are always Pi. `HW_ORCHESTRATOR=claude` does not matter here: there is
-no orchestrator. Outside herdr, `talk pm` runs `hw -r pm`.
+no orchestrator.
 
 Chat mode is also in `agent-role`: `--chat` for the mode, `--focus` for the
 focus. A chat agent and a task agent of the same role can run in one tab if
