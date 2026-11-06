@@ -7,6 +7,7 @@
   - [Before you start](#before-you-start)
   - [Start a layout with hw or ht](#start-a-layout-with-hw-or-ht)
   - [Work with the orchestrator](#work-with-the-orchestrator)
+  - [Chat with one role](#chat-with-one-role)
   - [Drive agents by hand](#drive-agents-by-hand)
   - [Close an agent's pane](#close-an-agents-pane)
   - [Troubleshooting](#troubleshooting)
@@ -68,6 +69,7 @@ hw                              # current directory, Pi orchestrator
 hw ~/src/my-project my-project  # directory and label
 hw -o claude -m sonnet          # Claude Code orchestrator on Sonnet
 hw -m strong                    # Pi orchestrator on the strong preset
+hw -r pm                        # no orchestrator: chat with pm (see below)
 hw -h                           # usage
 ht                              # the same, in a new tab of this workspace
 ```
@@ -76,6 +78,7 @@ ht                              # the same, in a new tab of this workspace
 |---|---|---|---|
 | `-o`, `--orchestrator` | `HW_ORCHESTRATOR` | `pi` | `pi` or `claude` |
 | `-m`, `--model` | `HW_MODEL` | the orchestrator's own | orchestrator model (format below) |
+| `-r`, `--role` | none | none | chat with this role, with no orchestrator (see [Chat with one role](#chat-with-one-role)) |
 
 An option wins over its environment variable, and the variable wins over the
 default. Use the variables for a machine default, for example
@@ -167,6 +170,20 @@ its focus. A restart repeats the placement.
 
 If you added a pane with `down` and a side agent starts afterwards, the lower
 panes join into one row, left to right, when the side column appears.
+
+To start a new workspace for one role, with no orchestrator, use `hw -r`
+(or `ht -r` for a new tab):
+
+```sh
+hw -r pm                 # nvim on top, pm below, focus in pm
+hw -r qa -m strong       # -m is the preset of the role
+```
+
+The lower pane runs the role in chat mode. The agent is named like any other
+agent of the tab: in tab `w4:t2`, `hw -r pm` gives `w4-t2-pm`. Stop it with
+`agent-role --stop w4-t2-pm`. `-o claude` does not work with `-r`, because role
+agents are always Pi. `HW_ORCHESTRATOR=claude` does not matter here: there is
+no orchestrator. Outside herdr, `talk pm` runs `hw -r pm`.
 
 Chat mode is also in `agent-role`: `--chat` for the mode, `--focus` for the
 focus. A chat agent and a task agent of the same role can run in one tab if

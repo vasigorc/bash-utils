@@ -28,10 +28,19 @@ out=$(HERDR_ENV=1 talk) && rc=0 || rc=$?
 out=$(HERDR_ENV=1 talk --preset strong) && rc=0 || rc=$?
 [[ $rc == 1 && ! -s $LOG ]] && pass 'an option first is not a role' || fail 'option first'
 
+# Outside herdr, talk makes a workspace with hw -r. A stub hw records its args.
 : >"$LOG"
-out=$(HERDR_ENV=0 talk pm) && rc=0 || rc=$?
-[[ $rc == 1 && $out == *'inside a herdr pane'* && ! -s $LOG ]] &&
-  pass 'outside herdr: clear error' || fail 'outside herdr'
+HERDR_ENV=0 zsh -c "source '$root/terminals/herdr/herdr.zsh'; hw() { print -r -- \"hw \$*\" >'$LOG'; }; talk pm --preset strong" ||
+  true
+[[ $(cat "$LOG") == 'hw -r pm -m strong' ]] && pass 'outside herdr: hw -r, --preset is -m' ||
+  fail "outside herdr: $(cat "$LOG")"
+: >"$LOG"
+HERDR_ENV=0 zsh -c "source '$root/terminals/herdr/herdr.zsh'; hw() { print -r -- \"hw \$*\" >'$LOG'; }; talk qa" || true
+[[ $(cat "$LOG") == 'hw -r qa' ]] && pass 'outside herdr: hw -r' || fail "outside herdr: $(cat "$LOG")"
+: >"$LOG"
+out=$(HERDR_ENV=0 talk pm --pane down) && rc=0 || rc=$?
+[[ $rc == 1 && $out == *'hw -r pm'* && ! -s $LOG ]] && pass 'outside herdr: other options are refused' ||
+  fail 'outside herdr: other options'
 
 ((failures == 0)) || { echo "$failures talk test(s) failed"; exit 1; }
 echo "All talk helper tests passed"
