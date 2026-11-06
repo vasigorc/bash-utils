@@ -135,10 +135,31 @@ The skill alone does not give the orchestrator the `STYLE.md` writing rules
 or the `ORCHESTRATOR.md` prompt. Only the full prompt gives them. In Pi,
 `--append-system-prompt` replaces `APPEND_SYSTEM.md`.
 
+## Chat with one role
+
+To talk with one role agent yourself, with no orchestrator, run `talk` in a
+shell pane of the tab:
+
+```sh
+talk pm
+talk qa --preset strong
+```
+
+`talk ROLE [agent-role option...]` runs `agent-role ROLE --chat --focus`. The
+agent opens in its usual pane (dev right of the pane that runs `talk`; pm, qa
+and reviewer in the side column). The focus moves to the new pane. The agent
+talks like a normal chat. It does not end with a `STATUS:` line, and it does
+not use its report format unless you ask for it. Its limits stay: it does not
+commit, push or open PRs unless you tell it to.
+
+Chat mode is also in `agent-role`: `--chat` for the mode, `--focus` for the
+focus. A chat agent and a task agent of the same role can run in one tab if
+you give them different names (`--name`). `agent-role --restart` keeps chat
+mode. Stop a chat agent like any other: `agent-role --stop <name>`.
+
 ## Drive agents by hand
 
-You do not usually need this: the orchestrator does it. It helps when you test
-or fix something.
+The orchestrator does this for you. It helps when you test or fix something.
 
 `agent-role` must run in a shell in the layout's tab. It opens dev right of the
 pane that runs it, so run it from the orchestrator pane with the `!` shell

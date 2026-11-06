@@ -26,6 +26,19 @@ typeset -g _HW_AGENTS=${${(%):-%x}:A:h:h:h}/agents
 hw() { _herdr_agent_layout hw "$@" }
 ht() { _herdr_agent_layout ht "$@" }
 
+# talk ROLE [agent-role option...]: chat with one role agent in this tab. No
+# orchestrator, no STATUS: report. The agent opens in its usual pane and gets
+# the focus. Examples: talk pm, talk qa --preset strong. Run it inside herdr.
+talk() {
+  emulate -L zsh
+  [[ -n ${1:-} && $1 != -* ]] || { print -u2 "usage: talk ROLE [agent-role option...]"; return 1 }
+  (( $+commands[agent-role] )) || { print -u2 "talk: agent-role is not on your PATH"; return 1 }
+  [[ ${HERDR_ENV:-} == 1 ]] || { print -u2 "talk: run talk inside a herdr pane"; return 1 }
+  local role=$1
+  shift
+  agent-role $role --chat --focus "$@"
+}
+
 # The agent name prefix for a tab: its id in lower case, with ":" as "-".
 # Agent names allow only letters, digits, "_" and "-". Example: wT:t2 -> wt-t2.
 _herdr_agent_prefix() { print -r -- ${(L)1//:/-} }

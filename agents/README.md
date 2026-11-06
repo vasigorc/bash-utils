@@ -3,18 +3,33 @@
 Role agents for herdr. The orchestrator can be Pi or Claude Code. The role
 agents are always Pi.
 
+## Quick start
+
+| I want to… | Run |
+|---|---|
+| Work with the full team | `hw` (new workspace) or `ht` (new tab) |
+| Chat with pm or qa in this tab | `talk pm`, `talk qa` |
+| Pick the model | `hw -m strong`, `talk qa --preset strong` |
+| Stop a role agent | `agent-role --stop <name>` |
+
+`talk` is a zsh function from `terminals/herdr/herdr.zsh`. It runs
+`agent-role ROLE --chat --focus`. In chat mode there is no orchestrator and no
+`STATUS:` report: you talk with the agent, and the focus moves to its pane.
+Run it inside herdr.
+
 | Path | What it is |
 |---|---|
 | `shared/ORCHESTRATOR.md` | Tells the orchestrator to load the `orchestrate` skill when you ask for a role |
 | `shared/STYLE.md` | ASD-STE100 writing rules for the orchestrator only |
 | `skills/orchestrate/SKILL.md` | Orchestrator rules and commands (Pi and Claude Code) |
 | `roles/_base.md` | Rules that every role agent gets |
+| `roles/_task.md`, `roles/_chat.md` | Added by mode: `_task.md` (orchestrator and `STATUS:` report) by default, `_chat.md` (a person, no report) with `--chat` |
 | `roles/{dev,reviewer,qa,pm}.md` | One role each: frontmatter (`preset`, `tools`, `pane`) and a prompt |
 | `roles/config.example.json` | Example machine config: preset models, extensions, extra tools |
 | `bin/agent-role` | Starts, stops and restarts role agents in herdr panes, changes their models, gives them tasks on stdin, and takes snapshots of the work tree |
 | `install.sh` | Links the tools into your home directory |
 | `test/scratch-repo.sh` | Makes a tiny repo to test the setup |
-| `test/*-labels.sh`, `test/presets-and-models.sh` | Tests of `agent-role` and `hw` with a stub herdr and a stub pi |
+| `test/*-labels.sh`, `test/presets-and-models.sh`, `test/chat-mode.sh`, `test/talk-helper.sh` | Tests of `agent-role` and `hw` with a stub herdr and a stub pi |
 | `pi/settings.json` | Portable Pi settings (see `pi/README.md`) |
 
 The project's `AGENTS.md` names the checks, the VCS and forge tools, and the
