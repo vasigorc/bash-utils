@@ -119,9 +119,29 @@ Tell the orchestrator what you want and which roles to use. For example:
   allowlist. A Pi extension can do the same. Answer in the orchestrator pane.
   Use one approver only: if two people or tools answer, a late Enter goes into
   the input box.
-- The orchestrator waits in the foreground while an agent works, so it cannot
-  talk with you during that time. See the "Waiting" part of the
-  `orchestrate` skill.
+- **A Pi orchestrator does not wait.** After it gives a task, it ends its
+  turn, so you can talk with it while the agent works. When the agent ends its
+  task, a Pi extension (`agents/pi/extensions/orch-wake.ts`, loaded by `hw` and
+  `ht`) wakes the orchestrator with a message. The orchestrator reads the
+  reply from a file, not from the pane. If an agent has no reply for 15
+  minutes, a watchdog message arrives.
+- A Claude Code orchestrator still waits in the foreground, so it cannot talk
+  with you during that time. See the "Waiting" part of the `orchestrate` skill.
+
+### How the async reply works
+
+| Step | Who | What |
+|---|---|---|
+| 1 | `agent-role --prompt NAME` | Writes `pending/<prefix>/NAME.json`, sends the task, tells the orchestrator to end its turn. Only when `AGENT_ROLES_ASYNC=1`, which `orch-wake.ts` sets in the orchestrator. |
+| 2 | `role-reply.ts` in the role agent | When the agent has settled, writes `replies/<prefix>/NAME.md` (the reply) and then `NAME.json` (`status`, `reason`), and removes the pending marker. |
+| 3 | `orch-wake.ts` in the orchestrator | Sees `NAME.json`, moves it to `handled/`, and sends one message that wakes the orchestrator, also when it is busy (it waits for the end of the current turn). |
+
+The files are in `~/.local/state/agent-roles/` (`AGENT_ROLES_STATE_DIR`). The
+`status` is `done`, `blocked`, `failed` (from the `STATUS:` line of the reply),
+or `unknown` (no line, or the task was aborted). A chat agent, or an agent that
+a person gave a task in its pane, writes no reply files: only a task with a
+pending marker does. `agent-role --stop` and `--restart` remove the files of
+the agent.
 
 ### Without hw
 

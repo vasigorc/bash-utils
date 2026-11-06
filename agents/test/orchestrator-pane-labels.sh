@@ -21,6 +21,7 @@ case "$1 $2" in
   'pane run') printf 'run %s %s\n' "$3" "$4" >>"$HERDR_LOG" ;;
   'agent start')
     printf 'start %s %s\n' "$3" "$7" >>"$HERDR_LOG"
+    printf '%s\n' "$*" >>"$HERDR_LOG.args"
     if [[ $START_FAIL == 1 ]]; then
       echo '{"error":{"code":"test_failure"}}'; exit 1
     fi
@@ -49,6 +50,24 @@ EXPECTED
   fi
 done
 
+# A Pi orchestrator loads the orch-wake extension. A Claude Code one does not.
+: >"$HERDR_LOG.args"
+zsh -f -c 'source "$1"; hw "$2"' _ "$root/terminals/herdr/herdr.zsh" "$tmp" >/dev/null
+if grep -q -- "-e .*agents/pi/extensions/orch-wake.ts" "$HERDR_LOG.args"; then
+  echo 'PASS: a Pi orchestrator loads orch-wake.ts'
+else
+  echo 'FAIL: a Pi orchestrator does not load orch-wake.ts'; cat "$HERDR_LOG.args"
+  failures=$((failures + 1))
+fi
+: >"$HERDR_LOG.args"
+zsh -f -c 'source "$1"; hw -o claude "$2"' _ "$root/terminals/herdr/herdr.zsh" "$tmp" >/dev/null
+if grep -q orch-wake "$HERDR_LOG.args"; then
+  echo 'FAIL: a Claude Code orchestrator loads orch-wake.ts'
+  failures=$((failures + 1))
+else
+  echo 'PASS: a Claude Code orchestrator does not load orch-wake.ts'
+fi
+
 export START_FAIL=1
 : >"$HERDR_LOG"
 if zsh -f -c 'source "$1"; ht "$2"' _ \
@@ -63,4 +82,4 @@ else
 fi
 
 ((failures == 0))
-echo 'All 3 orchestrator pane label tests passed'
+echo 'All orchestrator pane label tests passed'

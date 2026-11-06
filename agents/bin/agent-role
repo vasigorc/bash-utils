@@ -89,6 +89,9 @@ user_dir=${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}
 [[ $user_dir != "$agent_dir" ]] || user_dir=$HOME/.pi/agent
 # One JSON file for each running role agent: role, preset, model, session.
 meta=$agent_dir/role-agents
+# Async replies (see pi/extensions): pending/, replies/ and handled/ hold one
+# JSON file for each task. Each has a directory for the tab prefix.
+state_root=${AGENT_ROLES_STATE_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/agent-roles}
 self=${HERDR_PANE_ID:-}
 tab=${HERDR_TAB_ID:-}
 
@@ -100,17 +103,36 @@ command -v jq >/dev/null || die "jq not found"
 
 # Prints {"stopped", "closed_pane"}, or {"stopped", "note"} if the agent is
 # not there. Any other herdr error stops the script.
+# The tab prefix of an agent, from its state file. Empty if there is none.
+agent_prefix() { # name
+  local t
+  t=$(jq -r '.tab // empty' "$meta/$1.json" 2>/dev/null) || return 0
+  printf '%s' "${t//:/-}" | tr '[:upper:]' '[:lower:]'
+}
+
+# Remove the pending marker and the reply files of an agent. Run it when the
+# agent stops or starts again: nobody waits for its old task any more.
+forget_task() { # name
+  local p
+  p=$(agent_prefix "$1")
+  [[ -n $p ]] || return 0
+  rm -f "$state_root/pending/$p/$1.json" "$state_root/replies/$p/$1".* \
+    "$state_root/handled/$p/$1".*
+}
+
 stop_agent() {
   local name=$1 out pane
   if ! out=$(herdr agent get "$name" 2>&1); then
     [[ $(jq -r '.error.code? // empty' <<<"$out" 2>/dev/null) == agent_not_found ]] ||
       die "cannot stop $name: $out"
+    forget_task "$name"
     rm -f "$meta/$name.json"
     jq -nc --arg name "$name" '{stopped: $name, note: "no such agent, nothing to stop"}'
     return 0
   fi
   pane=$(jq -er '.result.agent.pane_id' <<<"$out") || die "no pane for agent: $name"
   herdr pane close "$pane" >/dev/null
+  forget_task "$name"
   rm -f "$meta/$name.json"
   jq -nc --arg name "$name" --arg pane "$pane" '{stopped: $name, closed_pane: $pane}'
 }
@@ -118,12 +140,37 @@ stop_agent() {
 # Give the task on stdin to the agent. The task goes to herdr as one argument,
 # and no shell reads it.
 prompt_agent() { # name [herdr option...]
-  local name=$1 task
+  local name=$1 task opt p marker="" sync=0 rc
   shift
   [[ ! -t 0 ]] || die "give the task on stdin: agent-role --prompt $name <<'TASK'"
   task=$(cat)
   [[ -n ${task//[[:space:]]/} ]] || die "the task for $name is empty"
-  exec herdr agent prompt "$name" "$task" "$@"
+  for opt in "$@"; do [[ $opt != --wait ]] || sync=1; done
+  # Async: the orchestrator ended its turn after this call, and the role-reply
+  # extension of the agent writes a reply file when the task ends. The marker
+  # tells the agent that someone waits. Only an orchestrator with the orch-wake
+  # extension sets AGENT_ROLES_ASYNC, and a call with --wait is a sync call.
+  # A chat agent and an agent without a state file get no marker.
+  if [[ ${AGENT_ROLES_ASYNC:-} == 1 && $sync == 0 ]] &&
+    p=$(agent_prefix "$name") && [[ -n $p ]] &&
+    [[ $(jq -r '.chat // false' "$meta/$name.json") == false ]]; then
+    marker=$state_root/pending/$p/$name.json
+    rm -f "$state_root/replies/$p/$name".* "$state_root/handled/$p/$name".*
+    mkdir -p "${marker%/*}"
+    jq -nc --arg name "$name" --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+      '{name: $name, started_at: $at}' >"$marker.tmp" && mv "$marker.tmp" "$marker"
+  fi
+  rc=0
+  herdr agent prompt "$name" "$task" "$@" || rc=$?
+  if [[ -n $marker ]]; then
+    if ((rc == 0)); then
+      echo "agent-role: async. Do not wait for $name. End your turn now." \
+        "A message wakes you when $name replies." >&2
+    else
+      rm -f "$marker"
+    fi
+  fi
+  return "$rc"
 }
 
 # Print a git tree id of the work tree. git adds all files to a copy of the
@@ -400,7 +447,7 @@ while (($#)); do
     --prompt)
       [[ $# -ge 2 ]] || usage 1
       shift
-      prompt_agent "$@" ;;
+      prompt_agent "$@" && exit 0 || exit $? ;;
     --snapshot)
       [[ $# -le 2 ]] || usage 1
       snapshot "${2:-.}"
@@ -497,6 +544,17 @@ fi
 # No -ne here: some Pi installs refuse it. The role agent dir does the same
 # job (see the header), with and without such an install.
 args=(${exts[@]+"${exts[@]}"} --model "$model" --append-system-prompt "$prompt")
+# Task mode: the agent writes a reply file when a task ends (see
+# pi/extensions/role-reply.ts). A chat agent talks with a person and does not.
+role_reply_ext=${AGENT_ROLES_EXT_DIR:-$here/../pi/extensions}/role-reply.ts
+if ((!chat)); then
+  if [[ -f $role_reply_ext ]]; then
+    args=(-e "$role_reply_ext" "${args[@]}")
+  else
+    echo "agent-role: note: $role_reply_ext is missing, so $name does not" \
+      "write reply files (the orchestrator then waits for it)." >&2
+  fi
+fi
 [[ -n $tools ]] && args+=(--tools "$tools")
 # agent-role names the session, so it can find the session file later. Pi
 # opens the session with this id in the cwd, or makes a new one. A new id
@@ -565,8 +623,16 @@ warn_project_extensions() {
   done
 }
 
+# The environment of the pane. The role-reply extension needs the name, the tab
+# prefix and the mode. A reused pane gets the same values with export.
+pane_env=("PI_CODING_AGENT_DIR=$agent_dir" "AGENT_ROLE_NAME=$name"
+  "AGENT_ROLE_PREFIX=$prefix" "AGENT_ROLE_MODE=$(if ((chat)); then echo chat; else echo task; fi)")
+[[ -z ${AGENT_ROLES_STATE_DIR:-} ]] || pane_env+=("AGENT_ROLES_STATE_DIR=$AGENT_ROLES_STATE_DIR")
+pane_env_args=()
+for e in "${pane_env[@]}"; do pane_env_args+=(--env "$e"); done
+
 if ((dry)); then
-  echo "pane env: PI_CODING_AGENT_DIR=$agent_dir"
+  echo "pane env: ${pane_env[*]}"
   printf '%q ' herdr agent start "$name" --kind pi --pane "<$where>" -- "${args[@]}"
   echo
   exit
@@ -589,7 +655,7 @@ warn_project_extensions
 # A new pane gets the role agent dir in its environment.
 split() { # pane direction [ratio]
   herdr pane split "$1" --direction "$2" ${3:+--ratio "$3"} --cwd "$cwd" --no-focus \
-    --env "PI_CODING_AGENT_DIR=$agent_dir" | jq -er '.result.pane.pane_id'
+    "${pane_env_args[@]}" | jq -er '.result.pane.pane_id'
 }
 
 side_panes() {
@@ -657,7 +723,7 @@ herdr pane rename "$pane" "$label_prefix$pane · $name" >/dev/null
 # herdr cannot set the environment of a pane that is there already. Set the
 # role agent dir in its shell. The shell keeps it after the agent exits.
 if ((!new)); then
-  herdr pane run "$pane" "export PI_CODING_AGENT_DIR=$(printf %q "$agent_dir")" >/dev/null
+  herdr pane run "$pane" "export $(printf '%q\n' "${pane_env[@]}" | paste -sd' ' -)" >/dev/null
 fi
 
 # Print why the start failed, with the last lines of the pane.

@@ -10,8 +10,9 @@
 # agent-role finds ../roles and herdr.zsh finds ../../agents from there.
 #
 # Install directory: $AGENT_ROLES_HOME, default ~/.local/share/agent-roles.
-# The copy never includes roles/config.example.json, pi/ or test/. The
-# machine config (~/.config/agent-roles/config.json) is not in the copy.
+# The copy never includes roles/config.example.json, test/ or pi/ (except
+# pi/extensions/). The machine config (~/.config/agent-roles/config.json) is
+# not in the copy.
 #
 # Local overlay: $AGENT_ROLES_OVERLAY, default ~/.config/agent-roles/local.
 # It has the repo layout (for example agents/roles/<role>.md). The script
@@ -44,8 +45,11 @@ say() { printf '%s\n' "$*"; }
 zsh_custom=${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}
 config=${XDG_CONFIG_HOME:-$HOME/.config}/agent-roles/config.json
 dest=${AGENT_ROLES_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/agent-roles}
-excludes=(--exclude .git --exclude .DS_Store
-  --exclude /roles/config.example.json --exclude /pi/ --exclude /test/)
+# pi/ is for the home machine (settings), except pi/extensions: agent-role and
+# hw load those. The includes come first: rsync uses the first rule that fits.
+excludes=(--include /pi/ --include /pi/extensions/ --include '/pi/extensions/**'
+  --exclude '/pi/*' --exclude .git --exclude .DS_Store
+  --exclude /roles/config.example.json --exclude /test/)
 overlay=${AGENT_ROLES_OVERLAY:-${config%/*}/local}
 
 if ((!uninstall)); then

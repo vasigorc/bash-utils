@@ -148,6 +148,10 @@ EOF
       model=$(jq -r --arg p "$model" '.presets[$p] // $p' "$config" 2>/dev/null || print -r -- "$model")
     fi
     [[ -n $model ]] && args+=(--model "$model")
+    # A Pi orchestrator wakes when a role agent replies (async replies), so it
+    # does not wait in the foreground. Claude Code has no such extension.
+    [[ $kind == pi && -f $_HW_AGENTS/pi/extensions/orch-wake.ts ]] &&
+      args+=(-e $_HW_AGENTS/pi/extensions/orch-wake.ts)
     if [[ -s $prompt ]]; then
       case $kind in
         pi) args+=(--append-system-prompt "$prompt") ;;

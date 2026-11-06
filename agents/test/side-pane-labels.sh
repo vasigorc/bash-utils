@@ -108,21 +108,21 @@ EXPECTED
 fixture side null
 check 'reuse legacy idle pane and label it with explicit name' --name reviewer-next <<'EXPECTED'
 rename side-pane side: side-pane · reviewer-next
-run side-pane export PI_CODING_AGENT_DIR=$AGENT_ROLES_PI_DIR
+run side-pane export PI_CODING_AGENT_DIR=$AGENT_ROLES_PI_DIR AGENT_ROLE_NAME=reviewer-next AGENT_ROLE_PREFIX=wt-t2 AGENT_ROLE_MODE=task
 start reviewer-next side-pane
 EXPECTED
 
 fixture 'side: old-reviewer' null
 check 'reuse named idle pane and replace its old name' --name reviewer-next <<'EXPECTED'
 rename side-pane side: side-pane · reviewer-next
-run side-pane export PI_CODING_AGENT_DIR=$AGENT_ROLES_PI_DIR
+run side-pane export PI_CODING_AGENT_DIR=$AGENT_ROLES_PI_DIR AGENT_ROLE_NAME=reviewer-next AGENT_ROLE_PREFIX=wt-t2 AGENT_ROLE_MODE=task
 start reviewer-next side-pane
 EXPECTED
 
 fixture 'side: stale-pane · old-reviewer' null
 check 'reuse addressed idle pane and refresh its stale address' --name reviewer-next <<'EXPECTED'
 rename side-pane side: side-pane · reviewer-next
-run side-pane export PI_CODING_AGENT_DIR=$AGENT_ROLES_PI_DIR
+run side-pane export PI_CODING_AGENT_DIR=$AGENT_ROLES_PI_DIR AGENT_ROLE_NAME=reviewer-next AGENT_ROLE_PREFIX=wt-t2 AGENT_ROLE_MODE=task
 start reviewer-next side-pane
 EXPECTED
 
@@ -134,21 +134,21 @@ EXPECTED
 
 check 'explicit ordinary pane includes address without side marker' --pane non-side <<'EXPECTED'
 rename non-side non-side · wt-t2-reviewer
-run non-side export PI_CODING_AGENT_DIR=$AGENT_ROLES_PI_DIR
+run non-side export PI_CODING_AGENT_DIR=$AGENT_ROLES_PI_DIR AGENT_ROLE_NAME=wt-t2-reviewer AGENT_ROLE_PREFIX=wt-t2 AGENT_ROLE_MODE=task
 start wt-t2-reviewer non-side
 EXPECTED
 
 fixture side null
 check 'explicit legacy side pane keeps its marker' --pane side-pane <<'EXPECTED'
 rename side-pane side: side-pane · wt-t2-reviewer
-run side-pane export PI_CODING_AGENT_DIR=$AGENT_ROLES_PI_DIR
+run side-pane export PI_CODING_AGENT_DIR=$AGENT_ROLES_PI_DIR AGENT_ROLE_NAME=wt-t2-reviewer AGENT_ROLE_PREFIX=wt-t2 AGENT_ROLE_MODE=task
 start wt-t2-reviewer side-pane
 EXPECTED
 
 fixture 'side: stale-pane · old-reviewer' null
 check 'explicit addressed side pane keeps marker and refreshes address' --pane side-pane <<'EXPECTED'
 rename side-pane side: side-pane · wt-t2-reviewer
-run side-pane export PI_CODING_AGENT_DIR=$AGENT_ROLES_PI_DIR
+run side-pane export PI_CODING_AGENT_DIR=$AGENT_ROLES_PI_DIR AGENT_ROLE_NAME=wt-t2-reviewer AGENT_ROLE_PREFIX=wt-t2 AGENT_ROLE_MODE=task
 start wt-t2-reviewer side-pane
 EXPECTED
 

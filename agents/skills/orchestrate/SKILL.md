@@ -150,7 +150,8 @@ needs another model. The user can always tell you which model to use.
 | Switch the model | `agent-role --set-model <name> <preset>` |
 | Start again, same session | `agent-role --restart <name> [--preset <preset>]` |
 | Models of the tab | `agent-role --models` |
-| Give a task and wait | `agent-role --prompt <name> --wait --timeout 300000`, with the task on stdin (see below) |
+| Give a task | `agent-role --prompt <name>`, with the task on stdin (see below). If it prints `async`, end your turn (see Waiting) |
+| Give a task and wait | `agent-role --prompt <name> --wait --timeout 300000`, with the task on stdin |
 | Wait again | `herdr agent wait <name> --timeout 300000` |
 | Read result | `herdr agent read <name> --source recent-unwrapped --lines 300` |
 | Status | `herdr agent get <name>`, `herdr agent list` |
@@ -163,10 +164,12 @@ needs another model. The user can always tell you which model to use.
 Always give a task to `agent-role --prompt` in a quoted heredoc:
 
 ```text
-agent-role --prompt <name> --wait --timeout 300000 <<'TASK'
+agent-role --prompt <name> <<'TASK'
 <the task, on as many lines as you need>
 TASK
 ```
+
+Add `--wait --timeout 300000` for a foreground wait (see Waiting).
 
 - Keep the quotes in `<<'TASK'`. Then the shell changes nothing in the task.
 - Do not put a line that is only `TASK` in the task.
@@ -188,6 +191,43 @@ TASK
 - For the other herdr commands, run `herdr --skill`.
 
 ## Waiting
+
+There are two ways. Give the task with `agent-role --prompt <name>`. If it
+prints `async`, use async. If it does not, use the foreground wait: run
+`herdr agent wait <name> --timeout 300000` now, or give the task again with
+`--wait` for the next one.
+
+### Async (a Pi orchestrator started with `hw` or `ht`)
+
+A Pi extension wakes you when a role agent ends its task. You do not wait.
+
+- Give the task with `agent-role --prompt <name>`, with no `--wait`. It prints
+  `async. Do not wait for <name>. End your turn now.`
+- Then end your turn. Tell the user which agents you started and what they do.
+  Do not run `agent wait`, `sleep`, or any other command to wait. The user can
+  talk with you while the agents work.
+- For parallel agents, give each task with its own `agent-role --prompt`, then
+  end your turn once. Each agent that ends sends one message.
+- When an agent ends, a message arrives: `Role agent <name> finished its task:
+  STATUS <status>. Its reply is in <file>.` Read that file with the read tool.
+  Do not read the pane. Then go on with the flow.
+  - `done`: go on. Check the claims as the Rules say.
+  - `blocked` or `failed`: read the reason in the message and the reply. Tell
+    the user, or fix the cause.
+  - `unknown`: the reply has no `STATUS:` line, or the agent was stopped. Read
+    the pane with `herdr agent read`. Treat it as not done.
+- A message can arrive when you work on something else. The messages wait for
+  the end of your turn. Deal with each one in turn.
+- If an agent has no reply for 15 minutes, a watchdog message arrives. Run
+  `herdr agent get <name>`, read the end of its pane, and ask the user: wait
+  more, or stop the command (`herdr agent send-keys <name> esc`). If the agent
+  ends its turn by that, its reply file arrives as usual.
+- For a read-only role, run `agent-role --snapshot` before the task and again
+  when its message arrives.
+- If a task goes wrong and you stop the agent with `agent-role --stop`, its
+  pending task is forgotten. Start the agent again and give the task again.
+
+### Foreground wait (Claude Code, or a Pi that has no wake extension)
 
 - **Default: wait in the foreground, in steps of 5 minutes or less.** Give the
   task with `agent-role --prompt <name> --wait --timeout 300000`. If it times
@@ -211,10 +251,8 @@ TASK
 - **Claude Code only:** to stay free for the user during a long task, run the
   wait as a background job. Claude Code wakes you when the job ends. The same
   limit applies: a background wait of 15 minutes at most.
-- **Pi:** always wait in the foreground. Pi does not wake you when a
-  background job ends.
+- **Pi without the wake extension:** wait in the foreground. Pi does not
+  wake you when a background job ends.
 
-This is an area to improve later. A foreground wait keeps you busy, so the
-user cannot talk with you until it ends. A future version can wake the
-orchestrator when an agent ends its turn, for example with a herdr hook or a
-small Pi extension.
+A foreground wait keeps you busy, so the user cannot talk with you until it
+ends. That is why a Pi orchestrator uses async.
