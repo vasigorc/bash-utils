@@ -29,6 +29,7 @@ STUB
 # The stub agent-role records the herdr environment that it gets, and its args.
 cat >"$tmp/bin/agent-role" <<'STUB'
 #!/usr/bin/env bash
+[[ ${1:-} != --init-fresh-tab ]] || exit 0
 printf 'env=%s tab=%s pane=%s args=%s\n' "${HERDR_ENV:-}" "${HERDR_TAB_ID:-}" \
   "${HERDR_PANE_ID:-}" "$*" >>"$AR_LOG"
 [[ ${AR_FAIL:-0} != 1 ]]

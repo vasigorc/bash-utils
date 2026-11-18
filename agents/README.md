@@ -3,11 +3,68 @@
 Role agents for herdr. The orchestrator can be Pi or Claude Code. The role
 agents are always Pi.
 
+## Named teams
+
+The machine-local config has one `teams` map. Each team maps role names to
+preset aliases from `presets`, or to full `provider/model` identifiers.
+`config.example.json` includes these illustrative lineups:
+
+| Team | orchestrator | dev | reviewer | qa | pm | mutant |
+|---|---|---|---|---|---|---|
+| core | strong | coder | critic | critic | strong | budget |
+| primavera | critic | budget | strong | coder | strong | budget |
+
+Starting a team starts only the selected member. Workers start on demand.
+Without a team, existing frontmatter presets and defaults stay unchanged.
+A missing worker assignment uses its frontmatter preset. A selected team
+must assign its orchestrator. Unknown teams and malformed assignments fail
+before panes are created. Presets remain machine-local; do not copy example
+model choices over an existing config.
+
+Selection is stored atomically under `AGENT_ROLES_STATE_DIR/tabs` (default
+`$XDG_STATE_HOME/agent-roles`, or `~/.local/state/agent-roles`). Each Herdr tab
+has its own byte-encoded key. Workers in that tab inherit the selection;
+`--team` can bind an unbound tab but cannot change a bound one. New `hw`/`ht`
+tabs use only the explicit team, never the caller's selection. Immediately
+after creation, the helpers clear any binding from a previous use of that tab
+id, including for plain (no-team) tabs. The internal `--init-fresh-tab` path
+is only for that creation boundary; never use it to reset a live tab.
+`--dry-run` shows the team and preset without binding or creating panes.
+
+Tab incarnation is not verified: the inspected Herdr 0.9.5 installed docs do
+not establish a lifetime-unique tab identifier. Tabs created outside `hw`/`ht`
+can reuse persisted context. Inheritance prints a warning about this limit;
+use `hw`/`ht` for fresh tabs rather than relying on plain-tab id uniqueness.
+No unsupported Herdr identifier or server-start heuristic is used.
+
+Pins protect the team's baseline: Primavera's reviewer can start on `strong`
+without `--force`. Global `AGENT_ROLES_PRESET` does not override pinned roles.
+`--models` includes team identity. Pi restart/model changes retain the team,
+cwd and session, including an explicit saved no-team choice; a chat restart
+stays in chat mode. Run restart/model changes in the agent's saved tab;
+cross-tab operations are rejected before stop or prompt. Pinned restarts accept
+aliases of the same resolved baseline model without `--force`.
+
+For `hw`/`ht`, model precedence stays: explicit `-m` > `HW_MODEL` > team
+assignment > client default. This also applies to `-r` member selection;
+selecting a team does not suppress `HW_MODEL`.
+
+The first-class orchestrator uses normal user Pi configuration and tools,
+`ORCHESTRATOR.md`, `STYLE.md`, and `orch-wake.ts`, not worker isolation or
+reply rules. `--pane ID` reuses a shell pane. Named-team `hw`/`ht` use this
+launch path. Claude remains supported with `-o claude`; team model values
+must be plain `anthropic/claude-*` identifiers with no thinking suffix.
+Other providers fail before layout creation. Direct `--client claude` is
+also supported, but Claude restart/model-switch commands are not supported.
+
 ## Quick start
 
 | I want to… | Run |
 |---|---|
-| Work with the full team | `hw` (new workspace) or `ht` (new tab) |
+| Start an orchestrator | `hw` (new workspace) or `ht` (new tab) |
+| Select a named lineup | `hw --team core` or `ht --team primavera` |
+| Start just an orchestrator in this tab | `agent-role orchestrator --team primavera` |
+| Chat with a team member | `hw --team primavera -r reviewer` |
 | Chat with pm or qa in this tab | `agent-role pm --chat --focus` |
 | Chat with one role in a new workspace | `hw -r pm` |
 | Pick the model | `hw -m strong`, `agent-role qa --chat --focus --preset strong` |
@@ -24,13 +81,13 @@ herdr.
 | `skills/orchestrate/SKILL.md` | Orchestrator rules and commands (Pi and Claude Code) |
 | `roles/_base.md` | Rules that every role agent gets |
 | `roles/_task.md`, `roles/_chat.md` | Added by mode: `_task.md` (orchestrator and `STATUS:` report) by default, `_chat.md` (a person, no report) with `--chat` |
-| `roles/{dev,reviewer,qa,pm}.md` | One role each: frontmatter (`preset`, `tools`, `pane`) and a prompt |
+| `roles/{dev,reviewer,qa,pm,mutant}.md` | One role each: frontmatter (`preset`, `tools`, `pane`) and a prompt |
 | `roles/config.example.json` | Example machine config: preset models, extensions, extra tools |
 | `bin/agent-role` | Starts, stops and restarts role agents in herdr panes, changes their models, gives them tasks on stdin, and takes snapshots of the work tree |
 | `pi/extensions/role-reply.ts`, `pi/extensions/orch-wake.ts` | Async replies: the role agent writes a reply file when a task ends, and the Pi orchestrator wakes up (see the herdr guide) |
 | `install.sh` | Links the tools into your home directory |
 | `test/scratch-repo.sh` | Makes a tiny repo to test the setup |
-| `test/*-labels.sh`, `test/presets-and-models.sh`, `test/chat-mode.sh`, `test/pane-placement.sh`, `test/solo-role.sh`, `test/async-replies.sh`, `test/async-extensions.sh` | Tests of `agent-role` and `hw` with a stub herdr and a stub pi |
+| `test/*-labels.sh`, `test/presets-and-models.sh`, `test/chat-mode.sh`, `test/pane-placement.sh`, `test/solo-role.sh`, `test/async-replies.sh`, `test/async-extensions.sh`, `test/mutant-role.sh` | Tests of `agent-role` and `hw` with a stub herdr and a stub pi |
 | `pi/settings.json` | Portable Pi settings (see `pi/README.md`) |
 
 The project's `AGENTS.md` names the checks, the VCS and forge tools, and the
@@ -39,6 +96,20 @@ branch policy. The role files name none of them.
 How to use `hw` and `ht`, drive agents by hand, fix problems, and test the
 setup:
 [herdr agent workspaces](../terminals/herdr/2-HerdrAgentWorkspaces.md).
+
+## Mutant test measurer
+
+`mutant` builds a kill matrix: which tests catch which small source changes.
+It uses the `budget` preset in either example team, or the role's budget
+fallback when a team has no explicit mutant assignment.
+
+Give it the source files, the test files, the exact test command, and a
+notes directory outside the checkout. It requires a clean tree. Have
+reviewer check its proposed mutant list before the run. While it runs, no
+dev, other mutant, or read-only role may use that checkout. Take snapshots
+before and after the run; their ids must match. The role restores every
+source change byte for byte and reports evidence; it never edits tests.
+
 
 ## Install
 
@@ -67,9 +138,10 @@ It also copies `roles/config.example.json` to
 `~/.config/agent-roles/config.json` if that file does not exist. Edit it for
 the machine:
 
-- `presets`: the model for each preset (`coder`, `strong`, `critic`). Keep
-  `critic` in a different model family from `coder`. You can add more
-  presets, for example `auto` for a model router of your provider. See
+- `presets`: the model for each preset (`coder`, `strong`, `critic`,
+  `budget`). Keep `critic` in a different model family from `coder`.
+  `budget` is a cheap model for mechanical work, such as the mutant role.
+  You can add more presets, for example `auto` for a model router. See
   [Models](#models).
 - `pinned`: roles that keep the preset of their role file, for example
   `["reviewer"]`. To change the preset of a pinned role, add `--force`.
@@ -92,6 +164,9 @@ To use another model, give a preset name or a `provider/id`:
 | Command | What it does |
 |---|---|
 | `agent-role dev --preset strong` | Starts dev on the `strong` model |
+| `agent-role --list` | Lists the available worker roles |
+| `agent-role mutant` | Starts the test measurer on `budget` in the side column |
+| `agent-role mutant --team primavera --dry-run` | Shows the team model and launch without starting an agent |
 | `AGENT_ROLES_PRESET=auto agent-role dev` | Starts each role that is not pinned on `auto` |
 | `agent-role --set-model NAME strong` | Switches a running agent with the Pi command `/model`. The session stays. This works also while the agent works: the next model request uses the new model. An agent that has had no task yet starts again in a new pane, as with `--restart`, and the command prints the new start |
 | `agent-role --restart NAME --preset strong` | Stops the agent and starts it again on the same session, in a new pane. Use it when the agent is stuck |

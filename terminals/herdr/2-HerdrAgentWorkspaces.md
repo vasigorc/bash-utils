@@ -14,6 +14,30 @@
   - [Test the setup](#test-the-setup)
   <!--toc:end-->
 
+## Named lineups
+
+Use `hw --team core` or `ht --team primavera` to select a lineup from the
+machine-local agent-roles config. This creates the usual layout and starts
+only its orchestrator. `hw --team primavera -r reviewer` starts only that
+worker in chat mode instead. Later workers inherit the tab's team.
+Model precedence is explicit `-m` > `HW_MODEL` > team assignment > client
+default; `--team` does not disable `HW_MODEL`.
+
+The helpers initialize team context only after creating a fresh tab, so a
+reused tab id cannot carry an old binding into this layout, even without
+`--team`. Herdr tab incarnation is not verified. Tabs created outside these
+helpers may reuse stale context; inheritance warns about that limitation.
+
+For an orchestrator without the editor layout, run
+`agent-role orchestrator --team primavera` inside Herdr. Use `--pane ID` to
+reuse an existing shell pane. Its Pi config, extensions and tools stay normal;
+worker isolation and task reply rules do not apply to the orchestrator.
+
+Teams cannot be switched on a bound tab. Start a new tab for another lineup.
+`agent-role reviewer --team core --chat --dry-run` previews a launch without
+binding the tab. See [the agent guide](../../agents/README.md#named-teams) for
+config, pins, fallback and Claude compatibility rules.
+
 ## What you get
 
 One herdr workspace or tab for each piece of work, with an orchestrator agent
@@ -30,10 +54,13 @@ and role agents in panes:
 - The **orchestrator** (`orch`) is the agent that you talk with. It can be Pi
   or Claude Code. It plans the work and gives tasks to the role agents.
 - The **role agents** are always Pi. dev opens right of the orchestrator.
-  pm, qa, and reviewer open in the **side** column, one under the other.
-- The side column is there only when you need it. The first of pm, qa, or
-  reviewer makes it. When the last of them stops, it goes away and the layout
-  returns to two rows.
+  pm, qa, reviewer, and mutant open in the **side** column, one under the other.
+- The side column is there only when you need it. The first of pm, qa,
+  reviewer, or mutant makes it. When the last of them stops, it goes away and
+  the layout returns to two rows.
+- dev is the primary implementation writer. mutant writes only temporary
+  mutations and must restore them. Never run mutant while dev or another
+  writer or test runner uses the same checkout.
 - The role prompts, models, and the `agent-role` launcher are in
   [agents](../../agents/README.md).
 - The project's `AGENTS.md` tells every agent which checks and tools to use.
@@ -111,7 +138,7 @@ Tell the orchestrator what you want and which roles to use. For example:
 > test-first, and have reviewer review it.
 
 - You do not have to name the `orchestrate` skill. When you ask for dev,
-  reviewer, qa, or pm, the orchestrator loads it.
+  reviewer, qa, pm, or mutant, the orchestrator loads it.
 - The orchestrator starts and stops the role agents with `agent-role`.
 - pm runs only when you ask for it. pm files issues only when the orchestrator
   tells it to.
@@ -166,11 +193,12 @@ To talk with one role agent yourself, with no orchestrator, run
 ```sh
 agent-role pm --chat --focus
 agent-role qa --chat --focus --preset strong
+agent-role mutant --chat --focus # plan a kill matrix; no concurrent checkout use
 ```
 
 `--chat` starts the role in chat mode. `--focus` moves the focus to the new
 pane. The agent opens in its usual pane (dev right of the pane that runs the
-command; pm, qa and reviewer in the side column). The agent
+command; pm, qa, reviewer, and mutant in the side column). The agent
 talks like a normal chat. It does not end with a `STATUS:` line, and it does
 not use its report format unless you ask for it. Its limits stay: it does not
 commit, push or open PRs unless you tell it to.
@@ -181,7 +209,7 @@ Choose where the pane opens with `--pane`. `agent-role pm --chat --focus --pane 
 |---|---|
 | `right` | Right of the pane that runs the command (default for dev) |
 | `down`, `up`, `left` | Below, above, or left of that pane |
-| `side` | In the side column (default for pm, qa and reviewer) |
+| `side` | In the side column (default for pm, qa, reviewer, and mutant) |
 | `PANE_ID` | In that pane, if it is at a shell prompt |
 
 herdr splits only right and down. For `up` and `left`, `agent-role` splits and
@@ -197,6 +225,7 @@ To start a new workspace for one role, with no orchestrator, use `hw -r`
 ```sh
 hw -r pm                 # nvim on top, pm below, focus in pm
 hw -r qa -m strong       # -m is the preset of the role
+hw -r mutant             # chat with mutant; exclusive checkout use for runs
 ```
 
 The lower pane runs the role in chat mode. The agent is named like any other
@@ -226,7 +255,7 @@ The orchestrator then also sees the new agent's name.
 
 | Task | Command |
 |---|---|
-| Start a role agent | `agent-role dev` (or `reviewer`, `qa`, `pm`) |
+| Start a role agent | `agent-role dev` (or `reviewer`, `qa`, `pm`, `mutant`) |
 | Preview the start command | `agent-role dev --dry-run` |
 | Start on another preset | `agent-role dev --preset strong` |
 | Switch a running agent to another model | `agent-role --set-model w4-t1-dev strong` |
@@ -297,7 +326,7 @@ the work back:
 | Status `blocked` | A permission prompt or a dialog waits for input. | Read the pane and answer. |
 | A wait runs to its timeout after the agent finished | The wait used `--until done`. herdr changes `done` to `idle` when someone looks at the pane. | Wait without `--until`: it ends at `idle`, `done`, or `blocked`. |
 | An agent works for a long time. Its pane shows one command, and the `Elapsed` time grows. | The command does not end, for example a server or a watch mode. The bash tool in Pi has no default timeout. | `herdr agent send-keys <name> esc` stops the command. The orchestrator asks you after 15 minutes. |
-| The orchestrator reports that reviewer, qa, or pm changed files | A check wrote a file that git does not ignore, or the agent edited a file. | Read `git diff --stat <before> <after>`. Restore the files or add the output to `.gitignore`. Then give the task again. |
+| The orchestrator reports that reviewer, qa, pm, or mutant left files changed | A check wrote a file that git does not ignore, or the agent edited a file. mutant deliberately writes temporary mutations, but must restore the checkout to its before-run snapshot. | Stop work and read `git diff --stat <before> <after>`. Ask before restoring files or adding output to `.gitignore`; never revert automatically. For mutant, verify byte-for-byte restoration and equal before/after snapshots before any retry. |
 | A task arrived changed, or a command in it ran | The task was in double quotes. | Use `agent-role --prompt <name> <<'TASK'`. |
 | `invalid_agent_name` | Names must be lower case: `[a-z][a-z0-9_-]`, 32 characters or fewer. | Use `--name`. |
 | `agent ... exists` | An agent with that name runs already. | `agent-role --stop <name>`, or use `--name`. |

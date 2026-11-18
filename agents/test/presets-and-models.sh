@@ -10,7 +10,7 @@ trap 'rm -rf "$tmp"' EXIT
 mkdir -p "$tmp/bin" "$tmp/roles" "$tmp/agents" "$tmp/work"
 export PATH="$tmp/bin:$PATH"
 export AGENT_ROLES_CONFIG="$tmp/config.json" AGENT_ROLES_DIR="$tmp/roles"
-export XDG_CACHE_HOME="$tmp/cache"
+export XDG_CACHE_HOME="$tmp/cache" XDG_STATE_HOME="$tmp/state"
 export AGENT_ROLES_PI_DIR="$tmp/pi-agent" PI_CODING_AGENT_DIR="$tmp/user-agent"
 export HERDR_ENV=1 HERDR_PANE_ID=caller HERDR_TAB_ID=wT:t2
 export AGENTS="$tmp/agents" HERDR_LOG="$tmp/herdr.log" PANE_TEXT="$tmp/pane.txt"
@@ -45,6 +45,7 @@ case "$1 $2" in
     jq -n --arg p "$(cat "$AGENTS/$3")" '{result: {agent: {pane_id: $p}}}' ;;
   'agent start')
     log "start $3 $7"
+    printf '%s\n' "$*" >"$HERDR_LOG.args"
     echo "$7" >"$AGENTS/$3"
     echo '{"result":{}}' ;;
   'agent prompt')
@@ -239,6 +240,52 @@ run 'start dev in a side pane by id' 0 '"pane": "side-x"' -- dev --name dev2 --p
 run '--stop' 0 '"stopped":"rev"' -- --stop rev dev2
 [[ ! -e $AGENT_ROLES_PI_DIR/role-agents/rev.json ]] && pass 'stop removes the state file' ||
   fail 'stop removes the state file'
+
+# Named teams use the same launch/model fixtures as legacy roles.
+cp "$root/agents/roles/_chat.md" "$tmp/roles/_chat.md"
+export AGENT_ROLES_STATE_DIR="$tmp/state"
+jq '.teams = {core: {orchestrator: "strong", dev: "coder", reviewer: "critic"},
+  primavera: {orchestrator: "critic", dev: "auto", reviewer: "strong"},
+  partial: {dev: "coder"}, broken: {orchestrator: "strong", dev: 42}}' \
+  "$AGENT_ROLES_CONFIG" >"$tmp/config.new"
+mv "$tmp/config.new" "$AGENT_ROLES_CONFIG"
+run 'team reviewer baseline needs no force' 0 'claude-opus-5-5:high' -- reviewer --team primavera --dry-run
+[[ ! -e $AGENT_ROLES_STATE_DIR/tabs ]] && pass 'dry run does not bind a tab' || fail 'dry run bound tab'
+run 'unknown team fails' 1 "unknown team" -- dev --team missing
+[[ ! -s $HERDR_LOG ]] && pass 'unknown team creates no panes' || fail 'unknown team mutated panes'
+run 'malformed assignment fails' 1 'assignment' -- dev --team broken
+run 'missing orchestrator fails' 1 'orchestrator' -- orchestrator --team partial --dry-run
+run 'legacy reviewer before team binding' 0 '"team": ""' -- reviewer --name legacy-rev
+run 'bind primavera' 0 '"team": "primavera"' -- reviewer --team primavera --name team-rev --chat
+run 'worker inherits tab team' 0 'router/auto' -- dev --dry-run
+AGENT_ROLES_PRESET=coder run 'global override cannot hijack team pin' 0 'claude-opus-5-5' -- reviewer --dry-run
+run 'conflicting team fails' 1 'bound' -- dev --team core
+[[ ! -s $HERDR_LOG ]] && pass 'conflict creates no panes' || fail 'conflict mutated panes'
+HERDR_TAB_ID=wT:t3 run 'another tab uses legacy baseline' 0 'claude-sonnet-5-5' -- dev --dry-run
+HERDR_TAB_ID=wT:t3 run 'another tab selects core' 0 '"team": "core"' -- dev --team core --name core-dev
+run 'original tab still primavera' 0 'router/auto' -- dev --dry-run
+grep -q 'cannot verify tab incarnation' "$tmp/err" && pass 'plain-tab identity limitation is visible' || fail 'plain-tab identity limitation hidden'
+run 'saved no-team switch retains explicit none' 0 '"team": ""' -- --set-model legacy-rev critic
+run 'saved no-team switch ignores new binding' 1 'pinned' -- --set-model legacy-rev strong
+run 'saved no-team restart ignores new binding' 1 'pinned' -- --restart legacy-rev --preset strong
+run 'saved no-team restart retains explicit none' 0 '"team": ""' -- --restart legacy-rev
+jq -e '.team == ""' "$AGENT_ROLES_PI_DIR/role-agents/legacy-rev.json" >/dev/null && pass 'no-team metadata retained' || fail 'no-team metadata retained'
+HERDR_TAB_ID=wT:t4 run 'cross-tab team restart rejects before stop' 1 'tab' -- --restart team-rev
+[[ ! -s $HERDR_LOG ]] && pass 'cross-tab restart has no mutations' || fail 'cross-tab restart mutated'
+HERDR_TAB_ID=wT:t4 run 'cross-tab team switch rejects before prompt' 1 'tab' -- --set-model team-rev strong
+[[ ! -s $HERDR_LOG ]] && pass 'cross-tab switch has no mutations' || fail 'cross-tab switch mutated'
+run 'pinned restart accepts resolved equivalent' 0 '"team": "primavera"' -- --restart team-rev --preset anthropic/claude-opus-5-5:high
+run 'team restart retains preset cwd and chat' 0 '"team": "primavera"' -- --restart team-rev
+jq -e '.team == "primavera" and .preset == "anthropic/claude-opus-5-5:high" and .chat and .cwd == env.PWD' \
+  "$AGENT_ROLES_PI_DIR/role-agents/team-rev.json" >/dev/null && pass 'restart metadata' || fail 'restart metadata'
+run 'restore saved alias' 0 '"team": "primavera"' -- --restart team-rev --preset strong
+run 'models reports team' 0 '"team":"primavera"' -- --models
+run 'direct orchestrator' 0 '"team": "primavera"' -- orchestrator --name team-orch --pane orch-pane
+if grep -q 'orch-wake.ts' "$HERDR_LOG.args" &&
+  ! grep -Eq 'role-reply.ts|--tools' "$HERDR_LOG.args" &&
+  ! grep -q 'AGENT_ROLE_MODE=' "$HERDR_LOG"; then pass 'orchestrator has normal policy'; else fail 'orchestrator policy'; fi
+run 'orchestrator dry run normal user context' 0 "PI_CODING_AGENT_DIR=$PI_CODING_AGENT_DIR" -- orchestrator --dry-run
+run 'non-Anthropic Claude team fails clearly' 1 'Claude' -- orchestrator --client claude --dry-run
 
 if ((failures)); then
   echo "$failures test(s) failed"

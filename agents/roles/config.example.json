@@ -1,8 +1,27 @@
 {
   "presets": {
-    "coder": "deepseek/deepseek-flash",
-    "strong": "openrouter/moonshotai/kimi-k3",
-    "critic": "openrouter/z-ai/glm-5.3"
+    "coder": "anthropic/claude-sonnet-5-5",
+    "strong": "anthropic/claude-opus-5-5",
+    "critic": "openai/gpt-6.1-sol",
+    "budget": "fireworks/fireworks:accounts/fireworks/models/deepseek-v4p1-flash"
+  },
+  "teams": {
+    "core": {
+      "orchestrator": "strong",
+      "dev": "coder",
+      "reviewer": "critic",
+      "qa": "critic",
+      "pm": "strong",
+      "mutant": "budget"
+    },
+    "primavera": {
+      "orchestrator": "critic",
+      "dev": "budget",
+      "reviewer": "strong",
+      "qa": "coder",
+      "pm": "strong",
+      "mutant": "budget"
+    }
   },
   "extensions": [
     "~/.pi/agent/extensions/herdr-agent-state.ts"

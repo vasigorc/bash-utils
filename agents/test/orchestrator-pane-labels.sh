@@ -30,7 +30,12 @@ case "$1 $2" in
   *) echo "Unexpected herdr call: $*" >&2; exit 1 ;;
 esac
 STUB
-chmod +x "$tmp/bin/herdr"
+cat >"$tmp/bin/agent-role" <<'STUB'
+#!/usr/bin/env bash
+[[ $* == --init-fresh-tab ]] || { echo "Unexpected agent-role: $*" >&2; exit 1; }
+printf '%s\n' "$HERDR_TAB_ID" >>"$HERDR_LOG.init"
+STUB
+chmod +x "$tmp/bin/herdr" "$tmp/bin/agent-role"
 
 failures=0
 for helper in hw ht; do

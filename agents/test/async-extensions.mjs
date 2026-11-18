@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 
 const root = path.resolve(import.meta.dirname, "../pi/extensions");
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "async-ext-"));
@@ -122,6 +123,63 @@ const until = async (cond, ms = 4000) => {
   const end = Date.now() + ms;
   while (Date.now() < end && !cond()) await sleep(50);
 };
+
+await test("the orchestrator launch environment enables tab-scoped async wake", async () => {
+  const launch = fs.mkdtempSync(path.join(tmp, "launch-"));
+  const bin = path.join(launch, "bin");
+  const userDir = path.join(launch, "user-agent");
+  const workerDir = path.join(launch, "worker-agent");
+  const envFile = path.join(launch, "pane-env.json");
+  fs.mkdirSync(bin);
+  fs.mkdirSync(userDir);
+  fs.writeFileSync(path.join(launch, "config.json"), "{}");
+  // Execute the exact export sent to a reused pane (the hw/ht launch path).
+  // All herdr calls are stubbed; no server or real Pi session is started.
+  fs.writeFileSync(path.join(bin, "herdr"), `#!/usr/bin/env bash
+set -euo pipefail
+case "$1 $2" in
+  'agent get') exit 1 ;;
+  'pane list') echo '{"result":{"panes":[]}}' ;;
+  'pane rename') ;;
+  'pane run') bash -c "$4; exec \\"$WAKE_NODE\\" -p 'JSON.stringify(process.env)'" >"$WAKE_ENV_FILE" ;;
+  'agent start') echo '{"result":{}}' ;;
+  *) echo "Unexpected herdr call: $*" >&2; exit 1 ;;
+esac
+`, { mode: 0o755 });
+  const env = Object.fromEntries(Object.entries(process.env)
+    .filter(([key]) => !key.startsWith("AGENT_ROLE")));
+  const result = spawnSync("bash", [path.resolve(root, "../../bin/agent-role"),
+    "orchestrator", "--pane", "caller", "--cwd", launch], {
+    encoding: "utf8",
+    env: { ...env, HOME: launch, PATH: `${bin}:${process.env.PATH}`,
+      XDG_CACHE_HOME: path.join(launch, "cache"), XDG_STATE_HOME: path.join(launch, "state"),
+      AGENT_ROLES_CONFIG: path.join(launch, "config.json"),
+      PI_CODING_AGENT_DIR: userDir, AGENT_ROLES_PI_DIR: workerDir,
+      HERDR_ENV: "1", HERDR_TAB_ID: "wT:t2", HERDR_PANE_ID: "caller",
+      AGENT_ROLE_NAME: "old-worker", AGENT_ROLE_MODE: "task", AGENT_ROLE_PREFIX: "old-tab",
+      WAKE_NODE: process.execPath, WAKE_ENV_FILE: envFile },
+  });
+  assert.equal(result.status, 0, result.stderr);
+  const paneEnv = JSON.parse(fs.readFileSync(envFile, "utf8"));
+  assert.equal(paneEnv.AGENT_ROLE_PREFIX, "wt-t2");
+  assert.equal(paneEnv.PI_CODING_AGENT_DIR, userDir);
+  assert.equal(paneEnv.AGENT_ROLE_NAME, "");
+  assert.equal(paneEnv.AGENT_ROLE_MODE, "");
+  const { handlers, sent, state } = await load("orch-wake.ts", paneEnv);
+  assert.equal(process.env.AGENT_ROLES_ASYNC, "1");
+  try {
+    await handlers.session_start();
+    reply(state, "wt-t3", "wt-t3-dev", "done");
+    reply(state, "wt-t2", "wt-t2-dev", "done");
+    await until(() => sent.length > 0);
+    assert.equal(sent.length, 1);
+    assert.match(sent[0].msg.content, /wt-t2-dev finished/);
+    assert.deepEqual(sent[0].opts, { triggerTurn: true, deliverAs: "followUp" });
+    assert.ok(fs.existsSync(path.join(state, "replies/wt-t3/wt-t3-dev.json")));
+  } finally {
+    await handlers.session_shutdown();
+  }
+});
 
 await test("orch-wake sets AGENT_ROLES_ASYNC and wakes once for a reply", async () => {
   const { handlers, sent, state } = await load("orch-wake.ts", { AGENT_ROLE_PREFIX: "w4-t1" });

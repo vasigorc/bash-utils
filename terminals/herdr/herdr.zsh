@@ -43,12 +43,12 @@ _herdr_agent_layout() {
     hw) what="a herdr workspace" ;;
     ht) what="a tab in the current herdr workspace" ;;
   esac
-  local -a o_orch o_model o_role o_help
+  local -a o_orch o_model o_role o_help o_team
   zparseopts -D -E -F -- o:=o_orch -orchestrator:=o_orch m:=o_model -model:=o_model \
-    r:=o_role -role:=o_role h=o_help -help=o_help || return 1
+    r:=o_role -role:=o_role -team:=o_team h=o_help -help=o_help || return 1
   if (( $#o_help )); then
     cat <<EOF
-usage: $cmd [-o pi|claude] [-m MODEL] [-r ROLE] [dir] [label]
+usage: $cmd [--team TEAM] [-o pi|claude] [-m MODEL] [-r ROLE] [dir] [label]
 
 Make $what for agent work: nvim at the top, the
 orchestrator below it. Role agents open with agent-role.
@@ -57,9 +57,11 @@ works only inside herdr.
 
   -o, --orchestrator  pi or claude.
                       Default: \$HW_ORCHESTRATOR (now: ${HW_ORCHESTRATOR:-not set}), else pi.
+  --team TEAM         Named model lineup; workers inherit it in this new tab.
   -m, --model         The orchestrator's model.
-                      Default: \$HW_MODEL (now: ${HW_MODEL:-not set}), else the
+                      Precedence: explicit -m > HW_MODEL > team assignment >
                       orchestrator's own default.
+                      HW_MODEL is now: ${HW_MODEL:-not set}.
                       pi:     provider/id, with an optional :thinking level,
                               or a preset name of the agent-roles config.
                               Examples: anthropic/claude-opus-5-5,
@@ -67,7 +69,7 @@ works only inside herdr.
                               List: pi --list-models
                       claude: an alias or a model id, with no provider.
                               Examples: sonnet, opus, claude-sonnet-5-5.
-  -r, --role          Chat with one role agent (dev, reviewer, qa, pm) in the
+  -r, --role          Chat with one role agent (dev, reviewer, qa, pm, mutant) in the
                       lower pane. There is no orchestrator. -m is then the
                       preset of the role, and -o claude is refused.
   dir                 The working directory. Default: the current directory.
@@ -89,6 +91,9 @@ EOF
   local dir=${${1:-$PWD}:A}
   local label=${2:-${dir:t}}
   local role=${${o_role[-1]:-}#=}
+  local team=${${o_team[-1]:-}#=}
+  local -a team_args
+  [[ -z $team ]] || team_args=(--team "$team")
   local reply tab top orch out i prompt
   local -a args
 
@@ -114,7 +119,20 @@ EOF
       { print -u2 "ht: run ht inside a herdr pane, or use hw"; return 1 }
   fi
 
-  if [[ -z $role ]]; then
+  # New tabs never inherit a caller's tab context. Validate the selected
+  # member through the launcher before workspace/tab creation.
+  if [[ -n $team ]]; then
+    (( $+commands[agent-role] )) || { print -u2 "$cmd: agent-role is not on your PATH"; return 1 }
+    local selected=${role:-orchestrator}
+    local -a preflight
+    preflight=("$selected" --validate --cwd "$dir" "${team_args[@]}")
+    [[ -z $model ]] || preflight+=(--preset "$model")
+    [[ -z $role ]] && preflight+=(--client "$kind")
+    [[ -z $role ]] || preflight+=(--chat)
+    HERDR_TAB_ID= HERDR_PANE_ID= agent-role "${preflight[@]}" >/dev/null || return 1
+  fi
+
+  if [[ -z $role && -z $team ]]; then
     # The orchestrator's extra prompt: its role, then the writing style. Only
     # the orchestrator gets these. Role agents do not.
     prompt=${XDG_CACHE_HOME:-$HOME/.cache}/agent-roles/orchestrator.md
@@ -148,9 +166,25 @@ EOF
     top=$(jq -er '.result.root_pane.pane_id' <<<"$reply") ||
     { print -u2 "$cmd: unexpected reply: $reply"; return 1 }
 
+  # Only this creation boundary may discard a previous incarnation's binding.
+  if (( $+commands[agent-role] )); then
+    HERDR_TAB_ID=$tab agent-role --init-fresh-tab || return 1
+  else
+    print -u2 "$cmd: agent-role unavailable; cannot clear any stale tab team context"
+  fi
+
   orch=$(herdr pane split "$top" --direction down --cwd "$dir" --no-focus |
     jq -er '.result.pane.pane_id') || { print -u2 "$cmd: orchestrator split failed"; return 1 }
   herdr pane run "$top" nvim >/dev/null
+
+  if [[ -n $team && -z $role ]]; then
+    local -a launch
+    launch=(orchestrator --client "$kind" "${team_args[@]}" --pane "$orch" --cwd "$dir")
+    [[ -z $model ]] || launch+=(--preset "$model")
+    HERDR_ENV=1 HERDR_TAB_ID=$tab HERDR_PANE_ID=$orch agent-role "${launch[@]}" >/dev/null || return 1
+    [[ ${HERDR_ENV:-} == 1 ]] || print "$cmd: $label ($tab) is ready. Open herdr to see it."
+    return 0
+  fi
 
   if [[ -n $role ]]; then
     # agent-role takes the tab and the calling pane from the environment, and
@@ -160,7 +194,7 @@ EOF
     # --cwd records DIR, where the pane runs. Without it agent-role records the
     # directory that you run hw from, and --restart opens the agent there.
     HERDR_ENV=1 HERDR_TAB_ID=$tab HERDR_PANE_ID=$orch agent-role $role --chat --focus \
-      --pane $orch --cwd "$dir" ${model:+--preset $model} >/dev/null ||
+      --pane $orch --cwd "$dir" ${model:+--preset $model} "${team_args[@]}" >/dev/null ||
       { print -u2 "$cmd: could not start $role in $tab (see above)"; return 1 }
     [[ ${HERDR_ENV:-} == 1 ]] ||
       print "$cmd: $label ($tab) is ready. Open herdr to see it."

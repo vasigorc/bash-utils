@@ -1,6 +1,6 @@
 ---
 name: orchestrate
-description: Run a team of Pi role agents (dev, reviewer, qa, pm) in herdr panes. Use when the user asks you to delegate work to dev, reviewer, qa, or pm, or to act as the orchestrator. Requires HERDR_ENV=1 and the agent-role command.
+description: Run a team of Pi role agents (dev, reviewer, qa, pm, mutant) in herdr panes. Use when the user asks you to delegate work to dev, reviewer, qa, pm, or mutant, or to act as the orchestrator. Requires HERDR_ENV=1 and the agent-role command.
 ---
 
 # Orchestrate role agents in herdr
@@ -17,14 +17,28 @@ Keep each shell command simple: one command, or a short chain of plain
 commands. Do not use shell variables such as `$HERDR_ENV` in the command.
 Permission checks cannot read variables, so the user must approve the command.
 
+## Named teams
+
+`hw --team core` and `ht --team primavera` select the tab's lineup and start
+only its orchestrator. `agent-role orchestrator --team primavera` starts
+only an orchestrator pane inside Herdr, without the editor layout. The
+orchestrator keeps normal user context; workers keep their isolated Pi dir.
+
+Worker launches inherit the tab's persisted team. Do not use a global preset
+to simulate a lineup. Pins protect each role's team baseline. A conflicting
+explicit `--team` is refused; use a new tab for another lineup. `--models`
+reports the team, and Pi restarts preserve it. Missing worker assignments
+fall back to frontmatter; a selected team must assign its orchestrator.
+
 ## Roles
 
 | Role | Use it for | Pane |
 |---|---|---|
-| dev | The only writer. One commit-sized unit for each task. | right of you |
+| dev | Writes the implementation. One commit-sized unit for each task. | right of you |
 | reviewer | Read-only review of a diff, a branch, or a plan. | side column |
 | qa | Tries to break the running system. Can change local test data, with an undo log. | side column |
 | pm | Goal, priority, and scope check. Files issues only when you tell it to. | side column |
+| mutant | Measures tests with a kill matrix; restores each source change. Uses budget. | side column |
 
 ## Flow
 
@@ -78,10 +92,20 @@ Permission checks cannot read variables, so the user must approve the command.
   the reply says `STATUS: done`. Do not use its findings. Run
   `git diff --stat <before> <after>`, show the result to the user, and ask what
   to do. Do not restore files yourself.
-  - During the task, do not let dev work in the same checkout.
+  - During the task, do not let dev or mutant work in the same checkout.
   - The check sees tracked and untracked files. It does not see ignored files
     (for example build caches) or containers.
   - If the checkout is not a git work tree, skip the check and tell the user.
+- **mutant changes source files for a short time.** Give it the source files,
+  the test files, the exact test command, and a notes directory outside the
+  checkout. It needs a clean tree. Have it design the mutant list first, then
+  have reviewer check the list for equivalent mutants before the run.
+  Take `agent-role --snapshot <dir>` before the run and keep the id. Do not
+  let dev, another mutant, or a read-only role work in the same checkout
+  while mutant runs. It applies one mutant, runs the tests, and restores the
+  file. When it ends, take another snapshot: the id must be the same. If it
+  differs, the task failed. Show `git diff --stat <before> <after>` and ask
+  the user what to do. Do not restore files yourself.
 - **Approvals.** The user approves the plan before dev starts. Follow
   `AGENTS.md` for who commits and who pushes.
 - **Commit messages.** Suggest a commit message in your final report. Use the
@@ -123,12 +147,14 @@ When the task ends:
 
 ## Models
 
-Each role starts on the preset of its role file. You choose when a role
-needs another model. The user can always tell you which model to use.
+With a named team, each role starts on its assigned model. Launch without
+`--preset` or `AGENT_ROLES_PRESET` overrides, including `auto`, unless the
+user requests an override. Without a team, each role starts on the preset
+of its role file. The user can always tell you which model to use.
 
-- Use `--preset auto` (a model router) for routine tasks, when the config
-  has an `auto` preset. For all roles that are not pinned, run the starts
-  with `AGENT_ROLES_PRESET=auto`.
+- **No-team mode only:** use `--preset auto` (a model router) for routine
+  tasks when the config has an `auto` preset. For roles that are not pinned,
+  you can run the starts with `AGENT_ROLES_PRESET=auto` in no-team mode.
 - Give a task that is hard, or that failed two times, to a stronger model:
   `agent-role --set-model <name> strong`. The agent keeps its context. If
   the agent is stuck, or `--set-model` fails, use
@@ -146,6 +172,8 @@ needs another model. The user can always tell you which model to use.
 | Step | Command |
 |---|---|
 | Start | `agent-role <role>`, which prints `{"name", "role", "pane", "preset", "model"}` |
+| List worker roles | `agent-role --list` |
+| Start the test measurer | `agent-role mutant` (budget model, side column) |
 | Start on another model | `agent-role <role> --preset <preset>` |
 | Switch the model | `agent-role --set-model <name> <preset>` |
 | Start again, same session | `agent-role --restart <name> [--preset <preset>]` |
