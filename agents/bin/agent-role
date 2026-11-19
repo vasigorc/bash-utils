@@ -4,7 +4,7 @@
 #
 # Usage:
 #   agent-role ROLE [--team TEAM] [--chat] [--focus] [--preset PRESET [--force]] [--name NAME]
-#              [--pane right|down|up|left|side|PANE_ID] [--cwd DIR] [--session ID]
+#              [--pane right|down|up|left|side|PANE_ID] [--here] [--cwd DIR] [--session ID]
 #              [--dry-run]
 #   agent-role --prompt NAME [OPTION...] <<'TASK'
 #   agent-role --set-model NAME PRESET [--force]
@@ -31,6 +31,14 @@
 # --pane side     use the side column on the right of the tab (default for pm,
 #                 qa, reviewer, mutant). The first side agent makes the column.
 # --pane PANE_ID  use an existing pane that is at a shell prompt
+# --here          start the client in the calling pane, with no split. The
+#                 pane must be at a shell prompt and must not host an agent.
+#                 Exit the client to return to the shell, then resume with
+#                 --here --session ID. --stop and --restart refuse these
+#                 agents (a guard file for the pane, written before the
+#                 client starts, holds even if the state file is lost), and
+#                 --focus does nothing. --here does not take --pane, also
+#                 when it is empty.
 # --preset PRESET use this preset, not the preset of the role. PRESET is a
 #                 name in the config, or a model as provider/id.
 # --force         allow --preset for a role in the "pinned" list of the config.
@@ -100,6 +108,10 @@ meta=$agent_dir/role-agents
 # Async replies (see pi/extensions): pending/, replies/ and handled/ hold one
 # JSON file for each task. Each has a directory for the tab prefix.
 state_root=${AGENT_ROLES_STATE_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/agent-roles}
+# One guard file for each running --here client, keyed by its pane. It is
+# written before the client starts, so it does not depend on herdr naming the
+# agent or on the agent state file.
+here_dir=$state_root/here-panes
 self=${HERDR_PANE_ID:-}
 tab=${HERDR_TAB_ID:-}
 
@@ -118,6 +130,51 @@ agent_prefix() { # name
   printf '%s' "${t//:/-}" | tr '[:upper:]' '[:lower:]'
 }
 
+# Read the herdr agent list once. agent_list_out holds the reply; on a read or
+# schema error agent_list_error holds the reason and the reply. 0: valid;
+# 2: error. Herdr's schema: result is an object, result.agents is an array, and
+# each entry is an object with a string pane_id; agent and name are a string or
+# null. One entry that does not fit makes the whole list unusable: it cannot
+# prove that a pane is free.
+read_agent_list() {
+  agent_list_out=$(herdr agent list 2>&1) || { agent_list_error=$agent_list_out; return 2; }
+  printf '%s' "$agent_list_out" | jq -e '
+    def ok($k): (.[$k] | type) as $t | $t == "string" or $t == "null";
+    (.result | type == "object") and (.result.agents | type == "array") and
+    all(.result.agents[]; type == "object" and (.pane_id | type == "string" and length > 0)
+      and ok("agent") and ok("name"))' >/dev/null 2>&1 ||
+    { agent_list_error="unexpected agent list: $agent_list_out"; return 2; }
+  agent_list_error=""
+  return 0
+}
+
+# Run a jq test on the validated list. 0: true; 1: false; 2: any other status
+# (an error must never look like "free").
+list_test() { # jq-args...
+  local rc=0
+  printf '%s' "$agent_list_out" | jq -e "$@" >/dev/null 2>&1 || rc=$?
+  case $rc in 0 | 1) return "$rc" ;; esac
+  agent_list_error="agent list test failed (jq status $rc): $agent_list_out"
+  return 2
+}
+
+# 0: an agent occupies the pane; 1: the pane is free; 2: herdr could not be
+# read. The caller decides whether a read error is fatal.
+agent_in_pane() { # pane
+  read_agent_list || return 2
+  list_test --arg p "$1" 'any(.result.agents[]; .pane_id == $p)'
+}
+
+# 0: our client occupies the pane and can take the name; 1: not yet; 2: herdr
+# could not be read. A different kind or an existing different name is not
+# ours: never rename it.
+here_agent_ready() { # pane kind name
+  read_agent_list || return 2
+  list_test --arg p "$1" --arg k "$2" --arg n "$3" \
+    'any(.result.agents[]; .pane_id == $p and .agent == $k and
+      ((.name // "") == "" or .name == $n))'
+}
+
 # Remove the pending marker and the reply files of an agent. Run it when the
 # agent stops or starts again: nobody waits for its old task any more.
 forget_task() { # name
@@ -128,8 +185,83 @@ forget_task() { # name
     "$state_root/handled/$p/$1".*
 }
 
+here_key() { printf '%s' "$1" | od -An -tx1 | tr -d ' \n'; }
+
+# The start time of a process, to tell a reused pid from the client. Empty when
+# ps cannot say.
+proc_started() { ps -o lstart= -p "$1" 2>/dev/null | sed 's/^ *//;s/ *$//' || true; }
+
+# 0: the client of this guard file may still run, or the file cannot be read
+# (fail closed). 1: the client has exited; the stale file is removed.
+here_guard_live() { # file
+  local f=$1 pid started now
+  pid=$(jq -er '.pid | select(type == "number" and . > 0 and . == floor)' "$f" 2>/dev/null) || return 0
+  kill -0 "$pid" 2>/dev/null || { rm -f "$f"; return 1; }
+  started=$(jq -r '.started // empty' "$f" 2>/dev/null) || return 0
+  [[ -n $started ]] || return 0
+  now=$(proc_started "$pid")
+  if [[ -n $now && $now != "$started" ]]; then rm -f "$f"; return 1; fi
+  return 0
+}
+
+# Stop when a live --here client guards this agent name or this pane. PANE can
+# be empty when only the name is known. An unreadable guard file stops too.
+here_guard_refuse() { # name pane
+  local f gname gpane
+  for f in "$here_dir"/*.json; do
+    [[ -e $f ]] || continue
+    if ! gname=$(jq -er '.name | select(type == "string")' "$f" 2>/dev/null) ||
+      ! gpane=$(jq -er '.pane | select(type == "string")' "$f" 2>/dev/null); then
+      die "unreadable --here guard $f, so $1 is not stopped. If no --here client runs, remove that file."
+    fi
+    here_guard_live "$f" || continue
+    if [[ $gname == "$1" || (-n ${2:-} && $gpane == "$2") ]]; then
+      die "$gname runs --here in pane $gpane. Exit its client in that pane first," \
+        "then resume with: agent-role ROLE --here --session ID (guard: $f)"
+    fi
+  done
+}
+
+# True when any live --here client exists.
+here_guard_any_live() {
+  local f
+  for f in "$here_dir"/*.json; do
+    [[ -e $f ]] || continue
+    ! here_guard_live "$f" || return 0
+  done
+  return 1
+}
+
+# Refuse to stop an agent that lives in a caller's shell pane. Two independent
+# layers: the guard file of a live client (by name, or by the pane that herdr
+# says the agent is in), and the "here" agent state file. Cheap when neither
+# exists. A name that herdr does not know is not proof of exit while a live
+# guard holds that name: naming can still be pending. Run for every name before
+# any pane closes.
+stop_guard() { # name
+  local n=$1 st=$meta/$1.json is_here=0 out pane code
+  if [[ -f $st && $(jq -r '.where // empty' "$st" 2>/dev/null || true) == here ]]; then is_here=1; fi
+  ((is_here)) || compgen -G "$here_dir/*.json" >/dev/null || return 0
+  if out=$(herdr agent get "$n" 2>&1); then
+    if ((is_here)); then
+      die "$n was started with --here. Exit its client, then resume with:" \
+        "agent-role $(jq -r .role "$st") --here --session $(jq -r .session "$st")"
+    fi
+    pane=$(jq -r '.result.agent.pane_id // empty' <<<"$out" 2>/dev/null || true)
+    here_guard_refuse "$n" "$pane"
+    return 0
+  fi
+  code=$(jq -r '.error.code? // empty' <<<"$out" 2>/dev/null || true)
+  if [[ $code == agent_not_found ]]; then
+    here_guard_refuse "$n" ""
+    return 0
+  fi
+  if ((is_here)) || here_guard_any_live; then die "cannot check $n before stop: $out"; fi
+}
+
 stop_agent() {
   local name=$1 out pane
+  stop_guard "$name"
   if ! out=$(herdr agent get "$name" 2>&1); then
     [[ $(jq -r '.error.code? // empty' <<<"$out" 2>/dev/null) == agent_not_found ]] ||
       die "cannot stop $name: $out"
@@ -143,6 +275,61 @@ stop_agent() {
   forget_task "$name"
   rm -f "$meta/$name.json"
   jq -nc --arg name "$name" --arg pane "$pane" '{stopped: $name, closed_pane: $pane}'
+}
+
+# Name the client in the calling pane and publish its state file, once herdr
+# sees the agent. Bounded: AGENT_ROLES_HERE_TRIES polls, 0.2 s apart. Runs in
+# the background, and writes only its log, so the client screen stays clean.
+# The client is this script after exec, so its PID is $$. If it exits first,
+# stop without publishing. Every path ends in here_helper, which removes the
+# temporary state file: Bash 3.2 does not run an EXIT trap when a background
+# function returns.
+here_poll() { # temp_state_file
+  local meta_tmp=$1 tries=${AGENT_ROLES_HERE_TRIES:-100} i out rc seen=0
+  local log=$cache/here-$name.log client_pid=$$
+  : >"$log"
+  for ((i = 1; i <= tries; i++)); do
+    if ! kill -0 "$client_pid" 2>/dev/null; then
+      echo "client exited before herdr named it; no state file published" >>"$log"
+      return 1
+    fi
+    rc=0
+    here_agent_ready "$self" "$client" "$name" || rc=$?
+    case $rc in
+      0)
+        seen=1
+        if out=$(herdr agent rename "$self" "$name" 2>&1); then
+          if out=$(mv "$meta_tmp" "$meta/$name.json" 2>&1); then
+            echo "named $name in pane $self" >>"$log"
+            return 0
+          fi
+          echo "publish failed: named $name, but could not write its state file: $out" >>"$log"
+          return 1
+        fi
+        printf 'rename failed: %s\n' "$out" >>"$log"
+        ;;
+      1) ;;
+      *) printf 'agent list failed: %s\n' "$agent_list_error" >>"$log" ;;
+    esac
+    sleep 0.2
+  done
+  if ((seen)); then
+    echo "herdr detected our client in pane $self but could not name it" \
+      "after $tries tries; no state file published" >>"$log"
+  else
+    echo "herdr did not detect our client in pane $self after $tries tries;" \
+      "no state file published" >>"$log"
+  fi
+  return 1
+}
+
+here_helper() { # temp_state_file
+  # The client is the foreground process-group leader, not the session leader
+  # (the pane's shell is). Its normal exit does not send SIGHUP. Ignoring HUP
+  # lets the helper survive a pane closure; the bounded poll ends it.
+  trap '' HUP
+  here_poll "$1" || true
+  rm -f "$1"
 }
 
 # Give the task on stdin to the agent. The task goes to herdr as one argument,
@@ -290,12 +477,18 @@ session_file() {
 # One JSON line for each role agent of this tab that herdr knows. A state
 # file of an agent that is gone is removed.
 tab_models() {
-  local st name f fam
+  local st name f fam out
   for st in "$meta"/*.json; do
     [[ -e $st ]] || continue
     [[ $(jq -r .tab "$st") == "$tab" ]] || continue
     name=$(jq -r .name "$st")
-    herdr agent get "$name" >/dev/null 2>&1 || { rm -f "$st"; continue; }
+    if ! out=$(herdr agent get "$name" 2>&1); then
+      if [[ $(jq -r '.error.code? // empty' <<<"$out" 2>/dev/null) == agent_not_found ]]; then
+        rm -f "$st"; continue
+      fi
+      echo "agent-role: warning: cannot read agent $name: $out" >&2
+      continue
+    fi
     f=$(session_file "$(jq -r .session "$st")" "$(jq -r '.session_dir // empty' "$st")")
     jq -s -c --slurpfile st "$st" '$st[0] as $a
       | ([.[($a.skip // 0):][] | select(.type == "model_change")] | last) as $c
@@ -391,6 +584,10 @@ set_model() { # name preset
   # (the pane status can show the same line again). Start it again instead.
   f=$(session_file "$(jq -r .session "$st")")
   if [[ -z $f ]]; then
+    if [[ $(jq -r '.where // empty' "$st") == here ]]; then
+      die "$name was started with --here and has no task yet. A model switch" \
+        "would restart it. Exit it, then start again with: agent-role $role --here --session $(jq -r .session "$st") --preset $2"
+    fi
     echo "agent-role: note: $name has had no task yet. It starts again on $2." >&2
     if ((force)); then restart "$name" --preset "$2" --force; fi
     restart "$name" --preset "$2"
@@ -438,6 +635,10 @@ restart() { # name [start option...]
   [[ $(jq -r '.client // "pi"' <<<"$saved") == pi ]] || die "Claude restart is not supported; start a new orchestrator"
   role=$(jq -r .role <<<"$saved")
   preset=$(jq -r .preset <<<"$saved")
+  if [[ $(jq -r '.where // empty' <<<"$saved") == here ]]; then
+    die "$name was started with --here. Exit its client, then resume with:" \
+      "agent-role $role --here --session $(jq -r .session <<<"$saved")"
+  fi
   while (($#)); do
     case $1 in
       --preset) [[ $# -ge 2 ]] || usage 1; want=$2; shift 2 ;;
@@ -469,6 +670,7 @@ restart() { # name [start option...]
 }
 
 role="" name="" where="" cwd=$PWD dry=0 preset_opt="" force=0 session="" chat=0 focus=0
+in_pane=0 pane_given=0
 team="" team_opt="" saved_team=0 client=pi validate=0 launch_dir=$agent_dir
 while (($#)); do
   case $1 in
@@ -482,6 +684,9 @@ while (($#)); do
     --stop)
       [[ $# -ge 2 ]] || usage 1
       shift
+      # A here agent lives in its caller's shell pane. Check every name before
+      # any pane closes, so a guarded batch is all or nothing.
+      for n in "$@"; do stop_guard "$n"; done
       for n in "$@"; do stop_agent "$n"; done
       exit ;;
     --prompt)
@@ -516,7 +721,8 @@ while (($#)); do
     --force) force=1; shift ;;
     --session) session=$2; shift 2 ;;
     --name) name=$2; shift 2 ;;
-    --pane) where=$2; shift 2 ;;
+    --pane) where=$2 pane_given=1; shift 2 ;;
+    --here) in_pane=1; shift ;;
     --cwd) cwd=$2; shift 2 ;;
     --dry-run) dry=1; shift ;;
     --chat) chat=1; shift ;;
@@ -532,6 +738,9 @@ cwd=$(cd "$cwd" && pwd) || die "no such directory: $cwd"
 file=$roles_dir/$role.md
 [[ $role == orchestrator || -f $file ]] || die "no role file: $file"
 [[ -f $config ]] || die "no config: $config (run agents/install.sh)"
+if ((in_pane && pane_given)); then
+  die "--here starts the client in this pane, so it does not take --pane"
+fi
 select_team
 case $client in pi|claude) ;; *) die "unknown client: $client" ;; esac
 [[ $client == pi || $role == orchestrator ]] || die "workers are always Pi"
@@ -564,6 +773,7 @@ extra=$(jq -r --arg r "$role" '(.extraTools[$r] // []) | join(",")' "$config")
 [[ -n $extra ]] && tools=${tools:+$tools,}$extra
 where=${where:-$(if [[ -f $file ]]; then fm pane; fi)}
 where=${where:-right}
+if ((in_pane)); then where=here; fi
 
 load_exts
 
@@ -712,12 +922,35 @@ fi
 if ((dry)); then
   echo "team: ${team:-none}; preset: ${preset:-user default}"
   echo "pane env: ${pane_env[*]}"
-  printf '%q ' herdr agent start "$name" --kind "$client" --pane "<$where>" -- "${args[@]}"
+  if ((in_pane)); then
+    printf '%q ' env "${pane_env[@]}" "$client" "${args[@]}"
+  else
+    printf '%q ' herdr agent start "$name" --kind "$client" --pane "<$where>" -- "${args[@]}"
+  fi
   echo
   exit
 fi
 
 [[ ${HERDR_ENV:-} == 1 && -n $self && -n $tab ]] || die "run this inside a herdr pane"
+if ((in_pane)); then
+  [[ -t 0 && -t 1 ]] ||
+    die "--here starts the client in this pane, so it needs a terminal (stdin and stdout)"
+  [[ $name =~ ^[a-z][a-z0-9_-]{0,31}$ ]] ||
+    die "agent name '$name' is not valid for herdr (want ^[a-z][a-z0-9_-]{0,31}$)"
+  pane_state=0
+  agent_in_pane "$self" || pane_state=$?
+  case $pane_state in
+    1) ;;
+    0) die "this pane already hosts an agent; start the role in a new pane (omit --here)" ;;
+    *) die "cannot read the herdr agent list; refusing to launch in this pane: $agent_list_error" ;;
+  esac
+  mkdir -p "$here_dir" && [[ -w $here_dir ]] || die "cannot write the --here guard directory: $here_dir"
+  here_guard_file=$here_dir/$(here_key "$self").json
+  if [[ -e $here_guard_file ]] && here_guard_live "$here_guard_file"; then
+    die "a --here client already runs in this pane (guard: $here_guard_file). Exit it first." \
+      "If none runs, remove that file."
+  fi
+fi
 if herdr agent get "$name" >/dev/null 2>&1; then
   die "agent $name exists; use --name, or run: agent-role --stop $name"
 fi
@@ -731,6 +964,36 @@ bind_team
 skip=0
 if f=$(session_file "$session") && [[ -n $f ]]; then skip=$(wc -l <"$f" | tr -d ' '); fi
 warn_project_extensions
+
+if ((in_pane)); then
+  # The state file goes live only after the helper names the agent, so
+  # --models never sees an agent that herdr does not know yet.
+  mkdir -p "$meta"
+  meta_tmp=$(mktemp "$meta/.here.XXXXXX")
+  jq -n --arg name "$name" --arg role "$role" --arg preset "$preset" --arg model "$model" \
+    --arg pane "$self" --arg where here --arg cwd "$cwd" --arg session "$session" \
+    --arg session_dir "$launch_dir" --arg team "$team" --arg client "$client" --arg tab "$tab" \
+    --argjson skip "$skip" --argjson chat "$chat" \
+    '{$name, $role, $preset, $model, $pane, $where, $cwd, $session, $tab, $skip, $team, $client, $session_dir, chat: ($chat == 1)}' \
+    >"$meta_tmp"
+  # The pane guard comes first: it holds from here on, whether or not herdr
+  # ever names the agent or the state file is published.
+  jq -n --arg name "$name" --arg pane "$self" --argjson pid "$$" \
+    --arg started "$(proc_started "$$")" --arg tab "$tab" \
+    '{$name, $pane, $pid, $started, $tab}' >"$here_guard_file.tmp" &&
+    mv "$here_guard_file.tmp" "$here_guard_file" ||
+    die "cannot write the --here guard: $here_guard_file"
+  # Print the start record before the client takes over the pane. The client
+  # has not started yet, so this does not prove readiness.
+  jq -n --arg name "$name" --arg role "$role" --arg pane "$self" --arg preset "$preset" \
+    --arg model "$model" --arg team "$team" \
+    '{name: $name, role: $role, pane: $pane, preset: $preset, model: $model, team: $team}'
+  echo "agent-role: note: --here starts $client in this pane. The JSON above" \
+    "does not prove readiness." >&2
+  here_helper "$meta_tmp" </dev/null >/dev/null 2>&1 &
+  cd "$cwd"
+  exec env "${pane_env[@]}" "$client" "${args[@]}"
+fi
 
 # A new pane gets the role agent dir in its environment.
 split() { # pane direction [ratio]

@@ -21,8 +21,11 @@ Permission checks cannot read variables, so the user must approve the command.
 
 `hw --team core` and `ht --team primavera` select the tab's lineup and start
 only its orchestrator. `agent-role orchestrator --team primavera` starts
-only an orchestrator pane inside Herdr, without the editor layout. The
-orchestrator keeps normal user context; workers keep their isolated Pi dir.
+only an orchestrator pane inside Herdr, without the editor layout. Add
+`--here` to run it in the calling pane instead of a new pane; exit the client
+to return to the shell, then resume with `--here --session ID`. `--stop` and
+`--restart` refuse `--here` agents. The orchestrator keeps normal user
+context; workers keep their isolated Pi dir.
 
 Worker launches inherit the tab's persisted team. Do not use a global preset
 to simulate a lineup. Pins protect each role's team baseline. A conflicting

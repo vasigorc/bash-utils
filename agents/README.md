@@ -64,6 +64,7 @@ also supported, but Claude restart/model-switch commands are not supported.
 | Start an orchestrator | `hw` (new workspace) or `ht` (new tab) |
 | Select a named lineup | `hw --team core` or `ht --team primavera` |
 | Start just an orchestrator in this tab | `agent-role orchestrator --team primavera` |
+| Start an agent in this pane, no split | `agent-role orchestrator --here` |
 | Chat with a team member | `hw --team primavera -r reviewer` |
 | Chat with pm or qa in this tab | `agent-role pm --chat --focus` |
 | Chat with one role in a new workspace | `hw -r pm` |
@@ -87,7 +88,7 @@ herdr.
 | `pi/extensions/role-reply.ts`, `pi/extensions/orch-wake.ts` | Async replies: the role agent writes a reply file when a task ends, and the Pi orchestrator wakes up (see the herdr guide) |
 | `install.sh` | Links the tools into your home directory |
 | `test/scratch-repo.sh` | Makes a tiny repo to test the setup |
-| `test/*-labels.sh`, `test/presets-and-models.sh`, `test/chat-mode.sh`, `test/pane-placement.sh`, `test/solo-role.sh`, `test/async-replies.sh`, `test/async-extensions.sh`, `test/mutant-role.sh` | Tests of `agent-role` and `hw` with a stub herdr and a stub pi |
+| `test/*-labels.sh`, `test/presets-and-models.sh`, `test/chat-mode.sh`, `test/pane-placement.sh`, `test/current-pane.sh`, `test/solo-role.sh`, `test/async-replies.sh`, `test/async-extensions.sh`, `test/mutant-role.sh` | Tests of `agent-role` and `hw` with a stub herdr and a stub pi |
 | `pi/settings.json` | Portable Pi settings (see `pi/README.md`) |
 
 The project's `AGENTS.md` names the checks, the VCS and forge tools, and the
@@ -96,6 +97,69 @@ branch policy. The role files name none of them.
 How to use `hw` and `ht`, drive agents by hand, fix problems, and test the
 setup:
 [herdr agent workspaces](../terminals/herdr/2-HerdrAgentWorkspaces.md).
+
+## Start in the current pane
+
+`agent-role ROLE --here` starts the client in the calling herdr pane, with no
+split and no new tab. The main use is to start only the orchestrator from a
+shell pane:
+
+```sh
+agent-role orchestrator --here
+agent-role orchestrator --here --team primavera --preset strong
+agent-role pm --here --chat --focus --session pm-20260101
+```
+
+The foreground client gets the same role, team, preset, session, cwd and
+prompt as a split launch. An orchestrator keeps normal user Pi context,
+`STYLE.md` and `orch-wake.ts`. Workers keep their isolated Pi agent dir and
+their reply rules. Pi and Claude Code are both supported for the
+orchestrator.
+
+`--here` needs a terminal on stdin and stdout, and the pane must not host an
+agent. It refuses `--pane` in either option order, ignores the role's default
+placement, and treats `--focus` as a no-op. `--dry-run` and `--validate`
+print the foreground `env ... pi ...` command and start nothing.
+
+Herdr names the agent only after it detects the client in the pane. Detection
+is bounded (`AGENT_ROLES_HERE_TRIES` polls, 0.2 s apart, default 100). The
+state file appears only after the name is set, so `--models` never lists an
+agent that herdr does not know. If detection times out, or the client exits
+first, no state file is written and the reason goes to
+`$XDG_CACHE_HOME/agent-roles/here-<name>.log`. The launch JSON is printed
+before the client starts; it does not prove readiness. `--here` does not
+relabel the pane: when you exit the client, herdr clears the agent name and
+the pane keeps its shell label.
+
+Exit the client to return to the shell, then resume the same session with:
+
+```sh
+agent-role ROLE --here --session ID [--preset PRESET]
+```
+
+Because the agent lives in your shell pane, `--stop`, `--restart` and the
+model-change restart fallback refuse `--here` agents before any pane closes.
+For a batch `--stop`, every name is checked before any pane closes.
+`--set-model` still uses the live `/model` path when the agent has a session;
+it refuses the restart fallback when the agent has had no task yet.
+
+The protection does not depend on the agent state file. Before the client
+starts, `--here` writes a small guard file for the pane in
+`$AGENT_ROLES_STATE_DIR/here-panes` (default
+`~/.local/state/agent-roles/here-panes`). It holds the agent name, the pane
+and the client process id. While that client runs, a stop or restart refuses
+when the name or the pane matches, even if the state file is missing or
+corrupt, if herdr has not named the agent yet (a name herdr does not know is
+not proof of exit), or if the agent got another name. If herdr cannot be read
+while a guard is live, a stop refuses too. A second `--here` in a guarded pane
+refuses.
+
+After the client exits, the guard is stale. The next stop or check removes it,
+so `--stop NAME` then cleans up the old state and closes no pane. Limits: a
+guard is stale when its process is gone or its start time differs, so a pid
+that the system reused does not keep it. A guard that cannot be read is never
+treated as stale: the error names the file, and you remove it when no `--here`
+client runs. Closing the pane by hand (`prefix + x`) is not blocked.
 
 ## Mutant test measurer
 

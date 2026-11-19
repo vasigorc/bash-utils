@@ -17,7 +17,7 @@
 <!--toc:end-->
 
 **Date**: 2026-10-09
-**Version**: herdr 0.9.1 installed. Default keys come from the 0.9.3 docs; the action names exist in 0.9.1.
+**Version**: herdr 0.9.5 installed. Default keys come from the 0.9.3 docs; the action names exist in 0.9.1.
 **Companion**: [tmux version](../tmux/1-CoreConceptsNavigation.md), [tmux to herdr key map](./1-HerdrTmuxMigration.md)
 
 Keys marked **(config)** come from [config.toml](./config.toml), not from herdr defaults.
@@ -218,6 +218,12 @@ split *line*, not the layout. Read the table, not the symbol.
 | `Alt+arrows` | Resize directly, no prefix **(config)**. |
 | `Ctrl+b R` | Resize mode **(config)**. Herdr default is `Ctrl+b r`. |
 | (none) | tmux `Ctrl+b !` (break pane into new window). Keyless. Use `herdr pane move <pane-id> --new-tab`. |
+
+**Pane swaps are not in the help list.** The installed herdr 0.9.5 changelog
+adds directional pane swaps on `Ctrl+b`, then `Shift+h/j/k/l` (the
+`Ctrl+b H/J/K/L` row above). The live binding list from `Ctrl+b ?` does not
+show these actions. `Ctrl+b`, then `Shift+w` renames the workspace, not the
+pane. The 0.9.5 changelog entry "directional pane swap" is the source.
 
 **Exit pane**: Type `exit` or press `Ctrl+d`
 

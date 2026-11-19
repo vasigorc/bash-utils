@@ -8,6 +8,7 @@
   - [Start a layout with hw or ht](#start-a-layout-with-hw-or-ht)
   - [Work with the orchestrator](#work-with-the-orchestrator)
   - [Chat with one role](#chat-with-one-role)
+  - [Start an agent in this pane](#start-an-agent-in-this-pane)
   - [Drive agents by hand](#drive-agents-by-hand)
   - [Close an agent's pane](#close-an-agents-pane)
   - [Troubleshooting](#troubleshooting)
@@ -239,6 +240,36 @@ focus. A chat agent and a task agent of the same role can run in one tab if
 you give them different names (`--name`). `agent-role --restart` keeps chat
 mode. Stop a chat agent like any other: `agent-role --stop <name>`.
 
+## Start an agent in this pane
+
+`agent-role ROLE --here` starts the client in the pane that runs the command,
+with no split. The main use is to start only the orchestrator from a shell:
+
+```sh
+agent-role orchestrator --here
+agent-role orchestrator --here --team primavera --preset strong
+agent-role pm --here --chat --focus
+```
+
+The pane must be at a shell prompt and must not host an agent. `--here`
+refuses `--pane`, ignores the role's default placement, and treats `--focus`
+as a no-op. The foreground client gets the same team, preset, session, cwd
+and prompt as a split launch.
+
+Herdr names the agent only after it detects the client, and the state file
+appears after the name is set. If detection fails, or the client exits first,
+the client still runs and the reason goes to
+`$XDG_CACHE_HOME/agent-roles/here-<name>.log`. `--here` does not change the
+pane label, and herdr clears the agent name when you exit the client.
+
+Exit the client to return to the shell. Resume the same session with
+`agent-role ROLE --here --session ID [--preset PRESET]`. `--stop` and
+`--restart` refuse `--here` agents, so exit the client by hand. A guard file
+in `~/.local/state/agent-roles/here-panes` protects the pane even when the
+agent state file is missing or herdr has not named the agent yet. After the
+client exits, the next `--stop` removes the stale guard. See
+[the agent guide](../../agents/README.md#start-in-the-current-pane).
+
 ## Drive agents by hand
 
 The orchestrator does this for you. It helps when you test or fix something.
@@ -256,6 +287,7 @@ The orchestrator then also sees the new agent's name.
 | Task | Command |
 |---|---|
 | Start a role agent | `agent-role dev` (or `reviewer`, `qa`, `pm`, `mutant`) |
+| Start an agent in this pane, no split | `agent-role orchestrator --here` |
 | Preview the start command | `agent-role dev --dry-run` |
 | Start on another preset | `agent-role dev --preset strong` |
 | Switch a running agent to another model | `agent-role --set-model w4-t1-dev strong` |
