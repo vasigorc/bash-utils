@@ -296,6 +296,28 @@ in your file invalid.
 Role sessions are in the role agent dir. `/resume` in your own Pi does not
 show them.
 
+### After a herdr restart
+
+After a server restart, herdr resumes each agent pane that reported a
+session (`[session] resume_agents_on_restore`, on by default). For Pi, it
+runs `pi --session <path>` in a new shell. That shell has no
+`PI_CODING_AGENT_DIR`, so a resumed role agent uses `~/.pi/agent` and loads
+all your packages, a command guard too. It also does not get what
+`agent-role` gives at start: the role prompt, the `--tools` list, the reply
+extension and the config extensions. Its session file stays in the role
+agent dir, so it still looks like the same role agent.
+
+So after a herdr restart, restart each role agent with
+`agent-role --restart <name>`. It keeps the session and starts it again with
+the role agent dir, the prompt and the tools.
+
+To see if a role session ran with your agent dir, count its custom entries.
+Entries that only your packages write show that it did:
+
+```shell
+jq -r 'select(.type == "custom" or .type == "custom_message") | .customType' <session.jsonl> | sort | uniq -c
+```
+
 ## Orchestrator prompt
 
 Only the orchestrator gets `ORCHESTRATOR.md` and `STYLE.md`. `hw` and `ht`

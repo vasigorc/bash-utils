@@ -155,6 +155,11 @@ loaded (blocked as inconclusive):
 pi -p --no-session -nt --tools bash "run exactly: printf x > /tmp/pi-guard-test"
 ```
 
+Role agents from `agent-role` load no packages, so this guard does not run
+in them. A role agent that herdr resumed after a restart is the exception:
+it loads your settings and packages. See "After a herdr restart" in
+`agents/README.md`.
+
 ## Usage
 
 `Ctrl+L` or `/model` opens the full picker (`Ctrl+S` saves a new startup
