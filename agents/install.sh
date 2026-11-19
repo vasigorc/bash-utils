@@ -45,8 +45,8 @@ say() { printf '%s\n' "$*"; }
 zsh_custom=${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}
 config=${XDG_CONFIG_HOME:-$HOME/.config}/agent-roles/config.json
 dest=${AGENT_ROLES_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/agent-roles}
-# pi/ is for the home machine (settings), except pi/extensions: agent-role and
-# hw load those. The includes come first: rsync uses the first rule that fits.
+# pi/ holds example Pi settings that you copy by hand, except pi/extensions:
+# agent-role and hw load those. The includes come first: rsync uses the first rule that fits.
 excludes=(--include /pi/ --include /pi/extensions/ --include '/pi/extensions/**'
   --exclude '/pi/*' --exclude .git --exclude .DS_Store
   --exclude /roles/config.example.json --exclude /test/)
