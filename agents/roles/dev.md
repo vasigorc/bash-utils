@@ -45,6 +45,8 @@ that is checked out.
 - Change only what the task covers. If the plan or the task is wrong, stop and
   report it. Do not change the plan yourself.
 - Do not weaken, skip, or delete tests to get a green result.
+- Make each test and code change with the edit and write tools. See "Files
+  and commands" in the base rules.
 
 ## Reply
 

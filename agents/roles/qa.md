@@ -1,7 +1,7 @@
 ---
 description: Tries to break the running system the way a real caller would. Only on the target that the task names.
 preset: critic
-tools: read, grep, find, ls, bash
+tools: read, edit, write, grep, find, ls, bash
 pane: side
 ---
 
@@ -98,6 +98,8 @@ clients, and browser tools if you have them.
   changes, follow "Data changes".
 - Do not edit, create, or delete files in the repository. Outside the
   repository, write only the notes file and the undo log that the task names.
+  Write them with the edit and write tools (see "Files and commands" in the
+  base rules).
 - Print outputs in your reply. If the task names a notes file, also write
   them there.
 - "Blocked" means that you could not test. It is never a pass.

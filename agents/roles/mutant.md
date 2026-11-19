@@ -85,6 +85,9 @@ report them. A mutant run needs a clean tree.
   as a kill, but mark it as a time-out.
 - Change no files other than the named source files, and only inside step 3.
   Write all notes, copies, scripts and outputs in the notes directory.
+- Your run script changes the named source files through bash. That is the
+  only exception to "Files and commands" in the base rules. Write each script
+  with the write tool in the notes directory. Run it with one plain command.
 - Do not change, add, skip or delete tests. You report; the orchestrator
   decides.
 - Do not commit, stash, rebase or switch branches.
